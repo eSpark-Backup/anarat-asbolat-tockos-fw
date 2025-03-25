@@ -20,13 +20,14 @@ use kernel::utilities::StaticRef;
 
 #[cfg(feature = "nrf51")]
 const NUM_GPIOTE: usize = 4;
-#[cfg(feature = "nrf52")]
+#[cfg(any(feature = "nrf52", feature = "nrf53"))]
 const NUM_GPIOTE: usize = 8;
 // Dummy value for testing on Travis-CI.
 #[cfg(all(
     not(all(target_arch = "arm", target_os = "none")),
     not(feature = "nrf51"),
     not(feature = "nrf52"),
+    not(feature = "nrf53"),
 ))]
 const NUM_GPIOTE: usize = 4;
 
