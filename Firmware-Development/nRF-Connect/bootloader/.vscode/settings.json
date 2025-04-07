@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "bl_validation.h": "c",
+        "bl_storage.h": "c",
+        "fw_info.h": "c"
+    }
+}
