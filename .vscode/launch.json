@@ -32,6 +32,44 @@
                 "monitor speed auto",
                 "b main"
             ]
+        },
+        {
+            "name": "nRF53-DK Debug cortex",
+            "cwd": "${workspaceFolder}",
+            "executable": "/home/ash/Documents/GitHub/tock-os/target/thumbv8m.main-none-eabi/release/nrf5340dk.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "jlink",
+            "device": "nRF5340_xxAA",
+            "interface": "swd",
+            "runToEntryPoint": "main",
+            "svdFile": "${env:HOME}/.vscode/nrf5340.svd",
+            // "preLaunchTask": "Build Tock",
+            "postLaunchCommands": [
+                "monitor speed auto",
+                "monitor reset halt",
+                "b main",
+                "continue"
+            ]
+        },
+        {
+            "name": "nRF52-DK Debug cortex",
+            "cwd": "${workspaceFolder}",
+            "executable": "/home/ash/Documents/GitHub/tock-os/target/thumbv7em-none-eabi/release/nrf52840dk.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "jlink",
+            "device": "nRF52840_xxAA",
+            "interface": "swd",
+            "runToEntryPoint": "main",
+            "svdFile": "${env:HOME}/.vscode/nrf52840.svd",
+            // "preLaunchTask": "Build Tock",
+            "postLaunchCommands": [
+                "monitor speed auto",
+                "monitor reset halt",
+                "b main",
+                "continue"
+            ]
         }
     ]
 }

@@ -23,7 +23,7 @@ install: flash
 # Upload the kernel over JTAG
 .PHONY: flash
 flash: $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/release/$(PLATFORM).bin
-	$(TOCKLOADER) $(TOCKLOADER_GENERAL_FLAGS) flash --address $(KERNEL_ADDRESS) --jlink-device nRF5340_XXAA_APP $<
+	$(TOCKLOADER) $(TOCKLOADER_GENERAL_FLAGS) flash --address $(KERNEL_ADDRESS) --board nrf5340dk --arch cortex-m33 --page-size 4 --jlink-device nrf5340_xxAA $<
 
 # Upload the kernel over JTAG using OpenOCD
 .PHONY: flash-openocd
