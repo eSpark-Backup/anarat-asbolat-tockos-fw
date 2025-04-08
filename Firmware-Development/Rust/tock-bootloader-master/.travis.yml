@@ -1,0 +1,21 @@
+sudo: false
+language: rust
+
+cache:
+  cargo: true
+
+os:
+  - linux
+
+# If you change this, you must also change Getting_Started.md, Makefile.common,
+# and Vagrantfile.
+rust:
+ - nightly-2018-08-16
+
+script:
+  - export PATH=$HOME/.cargo/bin:$PATH
+  - tools/run_cargo_fmt.sh diff
+  - make -C boards/hail-bootloader
+  - make -C boards/nrf52-bootloader
+  - make -C boards/imix-bootloader
+
