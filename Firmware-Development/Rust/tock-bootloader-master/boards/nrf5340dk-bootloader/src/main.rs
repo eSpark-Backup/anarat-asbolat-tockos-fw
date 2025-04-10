@@ -76,7 +76,7 @@ impl KernelResources<nrf5340::chip::NRF53<'static, Nrf5340DefaultPeripherals<'st
     type SyscallDriverLookup = Self;
     type SyscallFilter = ();
     type ProcessFault = ();
-    type CredentialsCheckingPolicy = ();
+    // type CredentialsCheckingPolicy = ();
     type Scheduler = NullScheduler;
     type SchedulerTimer = ();
     type WatchDog = ();
@@ -91,9 +91,9 @@ impl KernelResources<nrf5340::chip::NRF53<'static, Nrf5340DefaultPeripherals<'st
     fn process_fault(&self) -> &Self::ProcessFault {
         &()
     }
-    fn credentials_checking_policy(&self) -> &'static Self::CredentialsCheckingPolicy {
-        &()
-    }
+    // fn credentials_checking_policy(&self) -> &'static Self::CredentialsCheckingPolicy {
+    //     &()
+    // }
     fn scheduler(&self) -> &Self::Scheduler {
         self.scheduler
     }
@@ -126,7 +126,7 @@ unsafe fn create_peripherals() -> &'static mut Nrf5340DefaultPeripherals<'static
     // Initialize chip peripheral drivers
     let nrf5340_peripherals = static_init!(
         Nrf5340DefaultPeripherals,
-        Nrf5340DefaultPeripherals::new(ieee802154_ack_buf)
+        Nrf5340DefaultPeripherals::new()
     );
 
     nrf5340_peripherals
@@ -148,7 +148,7 @@ pub unsafe fn main() {
 
     nrf53_components::startup::NrfStartupComponent::new(
         false,
-        BUTTON_RST_PIN,
+        // BUTTON_RST_PIN,
         nrf5340::uicr::Regulator0Output::DEFAULT,
         &base_peripherals.nvmc,
     )
@@ -347,8 +347,8 @@ pub unsafe fn main() {
 }
 
 #[cfg(not(test))]
-#[no_mangle]
+// #[no_mangle]
 #[panic_handler]
-unsafe fn panic_fmt(_pi: &core::panic::PanicInfo) -> ! {
+unsafe fn panic_fmt(_pi: &PanicInfo) -> ! {
     loop {}
 }

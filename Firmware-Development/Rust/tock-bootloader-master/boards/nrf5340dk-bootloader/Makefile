@@ -2,7 +2,7 @@
 
 TOCK_ARCH=cortex-m4
 TARGET=thumbv7em-none-eabi
-PLATFORM=nrf52840dk-bootloader
+PLATFORM=nrf5340dk-bootloader
 
 include ../Common.mk
 

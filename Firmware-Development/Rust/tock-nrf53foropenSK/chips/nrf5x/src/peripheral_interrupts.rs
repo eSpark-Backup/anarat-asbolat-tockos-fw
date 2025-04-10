@@ -5,8 +5,8 @@
 pub const SPU: u32 = 3;
 pub const POWER_CLOCK: u32 = 5; // CLOCK, POWER
 
-// pub const RADIO: u32 = 8;
-
+pub const RADIO: u32 = 1;
+pub const GPIOTE: u32 = 6;
 pub const UART0: u32 = 8; //SPI, i2c,
 pub const UART1: u32 = 9; //SPI, i2c,
 pub const SPI4: u32 = 10;
@@ -54,12 +54,12 @@ pub const KMU: u32 = 57;
 // pub const GPIOTE1: u32 = 47;
 
 // pub const CRYPTOCELL: u32 = 68;
-// pub const SPI0_TWI0: u32 = 8;
-// pub const SPI1_TWI1: u32 = 9;
+pub const SPI0_TWI0: u32 = 8;
+pub const SPI1_TWI1: u32 = 9;
 
-// pub const TEMP: u32 = 12;
-
-// pub const ECB: u32 = 14;
+pub const TEMP: u32 = 12;
+pub const RNG: u32 = 13;
+pub const ECB: u32 = 14;
 // pub const CCM_AAR: u32 = 15;
 
 // pub const QDEC0: u32 = 51;
@@ -81,3 +81,5 @@ pub const KMU: u32 = 57;
 // pub const RTC2: u32 = 36;
 
 // pub const FPU: u32 = 38;
+#[cfg(feature = "nrf52")]
+pub const SPIM2_SPIS2_SPI2: u32 = 35;

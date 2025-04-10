@@ -6,6 +6,6 @@ edition = "2021"
 
 [dependencies]
 # kernel = { git = "https://github.com/tock/tock", rev = "2ff6868" }
-kernel = { path = "/home/ash/Downloads/Rust/tock/kernel" }
+kernel = { path = "../../tock-nrf53foropenSK/kernel" }
 
 tock-bootloader-protocol = { path = "../protocol" }

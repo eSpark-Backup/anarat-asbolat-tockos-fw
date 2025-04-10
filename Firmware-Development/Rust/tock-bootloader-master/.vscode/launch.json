@@ -1,0 +1,24 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "nRF53-DK Debug cortex",
+            "cwd": "${workspaceFolder}",
+            "executable": "target/thumbv7em-none-eabi/debug/nrf5340dk-bootloader.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "jlink",
+            "device": "nRF5340_xxAA",
+            "interface": "swd",
+            "runToEntryPoint": "main",
+            "svdFile": "${env:HOME}/.vscode/nrf5340.svd",
+            // "preLaunchTask": "Build Tock",
+            "postLaunchCommands": [
+                "monitor speed auto",
+                "monitor reset halt",
+                "b main",
+                "continue"
+            ]
+        }
+    ]
+}

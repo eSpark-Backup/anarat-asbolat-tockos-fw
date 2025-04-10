@@ -9,8 +9,8 @@ edition = "2021"
 # nrf52 = { git = "https://github.com/tock/tock", rev = "2ff6868" }
 # cortexm4 = { git = "https://github.com/tock/tock", rev = "2ff6868" }
 
-kernel = { path = "/home/ash/Downloads/Rust/tock/kernel" }
-nrf52 = { path = "/home/ash/Downloads/Rust/tock/chips/nrf52" }
-cortexm4 = { path = "/home/ash/Downloads/Rust/tock/arch/cortex-m4" }
+kernel = { path = "../../../tock-nrf53foropenSK/kernel" }
+nrf53 = { path = "../../../tock-nrf53foropenSK/chips/nrf53" }
+cortexm4 = { path = "../../../tock-nrf53foropenSK/arch/cortex-m4" }
 
 bootloader = { path = "../../bootloader" }
