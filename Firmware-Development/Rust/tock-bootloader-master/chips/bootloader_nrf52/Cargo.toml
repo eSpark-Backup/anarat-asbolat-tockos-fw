@@ -5,12 +5,12 @@ authors = ["Tock Project Developers <tock-dev@googlegroups.com>"]
 edition = "2021"
 
 [dependencies]
-kernel = { git = "https://github.com/tock/tock", rev = "2ff6868" }
-nrf52 = { git = "https://github.com/tock/tock", rev = "2ff6868" }
-cortexm4 = { git = "https://github.com/tock/tock", rev = "2ff6868" }
+# kernel = { git = "https://github.com/tock/tock", rev = "2ff6868" }
+# nrf52 = { git = "https://github.com/tock/tock", rev = "2ff6868" }
+# cortexm4 = { git = "https://github.com/tock/tock", rev = "2ff6868" }
 
-#kernel = { path = "../../../tock/kernel" }
-#nrf52 = { path = "../../../tock/chips/nrf52" }
-#cortexm4 = { path = "../../../tock/arch/cortex-m4" }
+kernel = { path = "/home/ash/Downloads/Rust/tock/kernel" }
+nrf52 = { path = "/home/ash/Downloads/Rust/tock/chips/nrf52" }
+cortexm4 = { path = "/home/ash/Downloads/Rust/tock/arch/cortex-m4" }
 
 bootloader = { path = "../../bootloader" }

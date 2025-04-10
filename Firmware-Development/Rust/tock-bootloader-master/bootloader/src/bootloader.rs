@@ -8,6 +8,7 @@ use kernel::hil;
 use kernel::utilities::cells::TakeCell;
 use kernel::utilities::cells::VolatileCell;
 use kernel::utilities::StaticRef;
+use kernel::hil::flash::Error;
 
 use crate::bootloader_crc;
 use crate::interfaces;
@@ -457,7 +458,7 @@ impl<'a, U: hil::uart::UartAdvanced<'a> + 'a, F: hil::flash::Flash + 'a> hil::ua
 impl<'a, U: hil::uart::UartAdvanced<'a> + 'a, F: hil::flash::Flash + 'a> hil::flash::Client<F>
     for Bootloader<'a, U, F>
 {
-    fn read_complete(&self, pagebuffer: &'static mut F::Page, _error: hil::flash::Error) {
+    fn read_complete(&self, pagebuffer: &'static mut F::Page, _error: Result<(), Error>) {
         match self.state.get() {
             // We just read the bootloader info page (page 2). Extract the
             // version and generate a response JSON blob.
@@ -718,7 +719,7 @@ impl<'a, U: hil::uart::UartAdvanced<'a> + 'a, F: hil::flash::Flash + 'a> hil::fl
         }
     }
 
-    fn write_complete(&self, pagebuffer: &'static mut F::Page, _error: hil::flash::Error) {
+    fn write_complete(&self, pagebuffer: &'static mut F::Page, _error: Result<(), Error>) {
         self.page_buffer.replace(pagebuffer);
 
         match self.state.get() {
@@ -762,7 +763,7 @@ impl<'a, U: hil::uart::UartAdvanced<'a> + 'a, F: hil::flash::Flash + 'a> hil::fl
         }
     }
 
-    fn erase_complete(&self, _error: hil::flash::Error) {
+    fn erase_complete(&self, _error: Result<(), Error>) {
         match self.state.get() {
             // Page erased, return OK
             State::ErasePage => {

@@ -76,7 +76,7 @@ impl KernelResources<nrf52840::chip::NRF52<'static, Nrf52840DefaultPeripherals<'
     type SyscallDriverLookup = Self;
     type SyscallFilter = ();
     type ProcessFault = ();
-    type CredentialsCheckingPolicy = ();
+    // type CredentialsCheckingPolicy = ();
     type Scheduler = NullScheduler;
     type SchedulerTimer = ();
     type WatchDog = ();
@@ -91,9 +91,9 @@ impl KernelResources<nrf52840::chip::NRF52<'static, Nrf52840DefaultPeripherals<'
     fn process_fault(&self) -> &Self::ProcessFault {
         &()
     }
-    fn credentials_checking_policy(&self) -> &'static Self::CredentialsCheckingPolicy {
-        &()
-    }
+    // fn credentials_checking_policy(&self) -> &'static Self::CredentialsCheckingPolicy {
+    //     &()
+    // }
     fn scheduler(&self) -> &Self::Scheduler {
         self.scheduler
     }

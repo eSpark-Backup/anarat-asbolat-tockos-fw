@@ -9,6 +9,7 @@ use core::ops::{Index, IndexMut};
 use kernel::hil;
 use kernel::utilities::cells::{OptionalCell, TakeCell};
 use kernel::ErrorCode;
+use kernel::hil::flash::Error;
 
 pub struct FiveTwelvePage(pub [u8; 512 as usize]);
 impl Default for FiveTwelvePage {
@@ -159,7 +160,7 @@ impl<'a, Flarge: hil::flash::Flash> hil::flash::Flash for FlashLargeToSmall<'a, 
 }
 
 impl<Flarge: hil::flash::Flash> hil::flash::Client<Flarge> for FlashLargeToSmall<'_, Flarge> {
-    fn read_complete(&self, pagebuffer: &'static mut Flarge::Page, _error: hil::flash::Error) {
+    fn read_complete(&self, pagebuffer: &'static mut Flarge::Page, _error: Result<(), Error>) {
         match self.state.get() {
             State::Read { page_number } => {
                 // Just need to read from the larger page into the smaller page
@@ -175,7 +176,7 @@ impl<Flarge: hil::flash::Flash> hil::flash::Client<Flarge> for FlashLargeToSmall
 
                         self.pagebuffer.replace(pagebuffer);
 
-                        client.read_complete(smpage, hil::flash::Error::CommandComplete);
+                        client.read_complete(smpage, Ok(()));
                     });
                 });
             }
@@ -213,14 +214,14 @@ impl<Flarge: hil::flash::Flash> hil::flash::Client<Flarge> for FlashLargeToSmall
         }
     }
 
-    fn write_complete(&self, pagebuffer: &'static mut Flarge::Page, _error: hil::flash::Error) {
+    fn write_complete(&self, pagebuffer: &'static mut Flarge::Page, _error: Result<(), Error>) {
         match self.state.get() {
             State::Write { page_number: _ } => {
                 self.client.map(|client| {
                     self.client_pagebuffer.take().map(move |smpage| {
                         self.pagebuffer.replace(pagebuffer);
 
-                        client.write_complete(smpage, hil::flash::Error::CommandComplete);
+                        client.write_complete(smpage, Ok(()));
                     });
                 });
             }
@@ -228,7 +229,7 @@ impl<Flarge: hil::flash::Flash> hil::flash::Client<Flarge> for FlashLargeToSmall
             State::Erase { page_number: _ } => {
                 self.pagebuffer.replace(pagebuffer);
                 self.client.map(|client| {
-                    client.erase_complete(hil::flash::Error::CommandComplete);
+                    client.erase_complete(Ok(()));
                 });
             }
 
@@ -236,5 +237,5 @@ impl<Flarge: hil::flash::Flash> hil::flash::Client<Flarge> for FlashLargeToSmall
         }
     }
 
-    fn erase_complete(&self, _error: hil::flash::Error) {}
+    fn erase_complete(&self, _error: Result<(), Error>) {}
 }
