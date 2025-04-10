@@ -349,6 +349,6 @@ pub unsafe fn main() {
 #[cfg(not(test))]
 #[no_mangle]
 #[panic_handler]
-unsafe fn panic_fmt(_pi: &core::panic::PanicInfo) -> ! {
+unsafe fn panic_fmt(_pi: &PanicInfo) -> ! {
     loop {}
 }
