@@ -44,12 +44,12 @@ const DOUBLE_RESET_MEMORY_LOCATION: StaticRef<VolatileCell<u32>> =
     unsafe { StaticRef::new(0x20007F7C as *const VolatileCell<u32>) };
 
 pub struct BootloaderEntryGpRegRet {
-    nrf_power: &'static nrf53::power::Power<'static>,
+    nrf_power: &'static nrf52::power::Power<'static>,
     double_reset: StaticRef<VolatileCell<u32>>,
 }
 
 impl BootloaderEntryGpRegRet {
-    pub fn new(nrf_power: &'static nrf53::power::Power<'static>) -> BootloaderEntryGpRegRet {
+    pub fn new(nrf_power: &'static nrf52::power::Power<'static>) -> BootloaderEntryGpRegRet {
         BootloaderEntryGpRegRet {
             nrf_power,
             double_reset: DOUBLE_RESET_MEMORY_LOCATION,
