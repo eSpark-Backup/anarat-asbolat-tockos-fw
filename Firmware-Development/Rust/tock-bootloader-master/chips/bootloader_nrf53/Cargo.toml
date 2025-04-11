@@ -1,0 +1,16 @@
+[package]
+name = "bootloader_nrf53"
+version = "0.1.0"
+authors = ["Tock Project Developers <tock-dev@googlegroups.com>"]
+edition = "2021"
+
+[dependencies]
+# kernel = { git = "https://github.com/tock/tock", rev = "2ff6868" }
+# nrf52 = { git = "https://github.com/tock/tock", rev = "2ff6868" }
+# cortexm4 = { git = "https://github.com/tock/tock", rev = "2ff6868" }
+
+kernel = { path = "../../../tock-nrf53foropenSK/kernel" }
+nrf53 = { path = "../../../tock-nrf53foropenSK/chips/nrf53" }
+cortexm4 = { path = "../../../tock-nrf53foropenSK/arch/cortex-m4" }
+
+bootloader = { path = "../../bootloader" }

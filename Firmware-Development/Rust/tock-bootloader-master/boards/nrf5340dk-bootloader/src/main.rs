@@ -151,8 +151,8 @@ pub unsafe fn main() {
         // BUTTON_RST_PIN,
         nrf5340::uicr::Regulator0Output::DEFAULT,
         &base_peripherals.nvmc,
-    )
-    .finalize(());
+    );
+    // .finalize(());
 
     //--------------------------------------------------------------------------
     // BOOTLOADER ENTRY
@@ -162,8 +162,8 @@ pub unsafe fn main() {
     // bunch of init code just to reset into the kernel.
 
     let bootloader_entry_mode = static_init!(
-        bootloader_nrf52::bootloader_entry_doublereset::BootloaderEntryDoubleReset,
-        bootloader_nrf52::bootloader_entry_doublereset::BootloaderEntryDoubleReset::new()
+        bootloader_nrf53::bootloader_entry_doublereset::BootloaderEntryDoubleReset,
+        bootloader_nrf53::bootloader_entry_doublereset::BootloaderEntryDoubleReset::new()
     );
 
     let bootloader_jumper = static_init!(

@@ -26,7 +26,7 @@ components = { path = "../../../tock-nrf53foropenSK/boards/components" }
 nrf53_components = { path = "../../../tock-nrf53foropenSK/boards/nordic/nrf53_components" }
 
 bootloader = { path = "../../bootloader" }
-bootloader_nrf52 = { path = "../../chips/bootloader_nrf52" }
+bootloader_nrf53 = { path = "../../chips/bootloader_nrf53" }
 bootloader_cortexm = { path = "../../arch/bootloader_cortexm" }
 
 
