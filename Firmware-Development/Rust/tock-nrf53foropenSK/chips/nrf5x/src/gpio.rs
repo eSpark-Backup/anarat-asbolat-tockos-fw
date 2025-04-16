@@ -12,6 +12,7 @@ use core::ops::{Index, IndexMut};
 use enum_primitive::cast::FromPrimitive;
 use enum_primitive::enum_from_primitive;
 use kernel::debug;
+use kernel::debug::debug_println;
 use kernel::hil;
 use kernel::utilities::cells::OptionalCell;
 use kernel::utilities::registers::interfaces::{ReadWriteable, Readable, Writeable};
@@ -91,7 +92,7 @@ struct GpioteRegisters {
 #[repr(C)]
 struct GpioRegisters {
     /// Reserved
-    // _reserved1: [u32; 321],
+    _reserved1: u32,
     /// Write GPIO port
     /// - Address: 0x504 - 0x508
     out: ReadWrite<u32, Out::Register>,

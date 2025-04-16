@@ -77,6 +77,7 @@ use capsules_core::virtualizers::virtual_alarm::{MuxAlarm, VirtualMuxAlarm};
 // use capsules_extra::net::ipv6::ip_utils::IPAddr;
 use kernel::component::Component;
 use kernel::hil::led::LedLow;
+use kernel::hil::led::LedHigh;
 use kernel::hil::time::Counter;
 #[allow(unused_imports)]
 use kernel::hil::usb::Client;
@@ -562,6 +563,14 @@ pub unsafe fn start() -> (
         LedLow::new(&nrf5340_peripherals.gpio_port[LED2_PIN]),
         LedLow::new(&nrf5340_peripherals.gpio_port[LED3_PIN]),
         LedLow::new(&nrf5340_peripherals.gpio_port[LED4_PIN]),
+    ));
+
+    let led2 = components::led::LedsComponent::new().finalize(components::led_component_static!(
+        LedHigh<'static, nrf5340::gpio::GPIOPin>,
+        LedHigh::new(&nrf5340_peripherals.gpio_port[LED1_PIN]),
+        LedHigh::new(&nrf5340_peripherals.gpio_port[LED2_PIN]),
+        LedHigh::new(&nrf5340_peripherals.gpio_port[LED3_PIN]),
+        LedHigh::new(&nrf5340_peripherals.gpio_port[LED4_PIN]),
     ));
 
     //--------------------------------------------------------------------------

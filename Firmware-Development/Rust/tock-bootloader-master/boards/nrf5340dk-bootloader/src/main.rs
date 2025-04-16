@@ -30,7 +30,10 @@ const UART_TXD: Pin = Pin::P0_06;
 const UART_RXD: Pin = Pin::P0_08;
 const BUTTON_RST_PIN: Pin = Pin::P0_18;
 
-const LED_4: Pin = Pin::P0_16;
+const LED1_PIN: Pin = Pin::P0_28;
+const LED2_PIN: Pin = Pin::P0_29;
+const LED3_PIN: Pin = Pin::P0_30;
+const LED4_PIN: Pin = Pin::P0_31;
 
 #[allow(dead_code)]
 const BUTTON_4: Pin = Pin::P0_25;
@@ -173,7 +176,7 @@ pub unsafe fn main() {
 
     let active_notifier_led = static_init!(
         kernel::hil::led::LedLow<'static, nrf5340::gpio::GPIOPin>,
-        kernel::hil::led::LedLow::new(&nrf5340_peripherals.gpio_port[LED_4])
+        kernel::hil::led::LedLow::new(&nrf5340_peripherals.gpio_port[LED4_PIN])
     );
 
     let bootloader_active_notifier = static_init!(

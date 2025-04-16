@@ -4,7 +4,7 @@
         {
             "name": "nRF53-DK Debug cortex",
             "cwd": "${workspaceFolder}",
-            "executable": "target/thumbv7em-none-eabi/debug/nrf5340dk-bootloader.elf",
+            "executable": "target/thumbv8m.main-none-eabi/debug/nrf5340dk-bootloader.elf",
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "jlink",
