@@ -18,6 +18,8 @@ use kernel::hil::time::Counter;
 use kernel::platform::KernelResources;
 use kernel::platform::SyscallDriverLookup;
 use kernel::static_init;
+use kernel::hil::uart::Configure;
+use kernel::hil::uart;
 
 use bootloader::null_scheduler::NullScheduler;
 
@@ -151,11 +153,10 @@ pub unsafe fn main() {
 
     nrf53_components::startup::NrfStartupComponent::new(
         false,
-        // BUTTON_RST_PIN,
+        BUTTON_RST_PIN,
         nrf5340::uicr::Regulator0Output::DEFAULT,
         &base_peripherals.nvmc,
-    );
-    // .finalize(());
+    ).finalize(());
 
     //--------------------------------------------------------------------------
     // BOOTLOADER ENTRY
@@ -176,7 +177,7 @@ pub unsafe fn main() {
 
     let active_notifier_led = static_init!(
         kernel::hil::led::LedLow<'static, nrf5340::gpio::GPIOPin>,
-        kernel::hil::led::LedLow::new(&nrf5340_peripherals.gpio_port[LED4_PIN])
+        kernel::hil::led::LedLow::new(&nrf5340_peripherals.gpio_port[LED1_PIN])
     );
 
     let bootloader_active_notifier = static_init!(
@@ -270,6 +271,18 @@ pub unsafe fn main() {
         None,
         None,
     );
+    // base_peripherals.uarte0.configure(uart::Parameters {
+    //     baud_rate: 115200,
+    //     stop_bits: uart::StopBits::One,
+    //     parity: uart::Parity::None,
+    //     hw_flow_control: false,
+    //     width: uart::Width::Eight,
+    // });
+    
+    // let hello_msg: &'static mut [u8] = static_init!([u8; 14], *b"Hello, UART!\r\n");
+
+    // // This blocks until the UART is done transmitting
+    // let _ = hil::uart::Transmit::transmit_buffer(&base_peripherals.uarte0, hello_msg, hello_msg.len());
 
     let nrfpagebuffer = static_init!(nrf53::nvmc::NrfPage, nrf53::nvmc::NrfPage::default());
 

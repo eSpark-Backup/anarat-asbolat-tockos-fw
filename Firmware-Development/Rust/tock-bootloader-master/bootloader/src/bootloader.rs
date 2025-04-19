@@ -9,6 +9,7 @@ use kernel::utilities::cells::TakeCell;
 use kernel::utilities::cells::VolatileCell;
 use kernel::utilities::StaticRef;
 use kernel::hil::flash::Error;
+use kernel::hil::uart::Transmit;
 
 use crate::bootloader_crc;
 use crate::interfaces;

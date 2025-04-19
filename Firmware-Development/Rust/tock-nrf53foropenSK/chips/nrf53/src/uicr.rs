@@ -19,7 +19,7 @@ use kernel::utilities::StaticRef;
 use crate::gpio::Pin;
 
 const UICR_BASE: StaticRef<UicrRegisters> =
-    unsafe { StaticRef::new(0x10001200 as *const UicrRegisters) };
+    unsafe { StaticRef::new(0x00FF8000 as *const UicrRegisters) };
 
 register_structs! {
     // CTRL-AP - Control access port

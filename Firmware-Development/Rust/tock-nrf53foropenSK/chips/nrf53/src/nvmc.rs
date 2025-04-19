@@ -19,45 +19,52 @@ use kernel::utilities::StaticRef;
 use kernel::ErrorCode;
 
 const NVMC_BASE: StaticRef<NvmcRegisters> =
-    unsafe { StaticRef::new(0x4001E400 as *const NvmcRegisters) };
+    unsafe { StaticRef::new(0x50039000 as *const NvmcRegisters) };
 
 #[repr(C)]
 struct NvmcRegisters {
+    _reserved: [u32; 0x100],
     /// Ready flag
     /// Address 0x400 - 0x404
     pub ready: ReadOnly<u32, Ready::Register>,
-    _reserved0: [u32; 4],
+    _reserved0: [u32; 1],
     /// Ready flag
     /// Address 0x408 - 0x40C
     pub ready_next: ReadOnly<u32, Ready::Register>,
     /// Reserved
-    _reserved1: [u32; 59],
+    _reserved1: [u32; 0x3E],
     /// Configuration register
     /// Address: 0x504 - 0x508
     pub config: ReadWrite<u32, Configuration::Register>,
     /// Register for erasing a page in Code area
-    /// Address: 0x508 - 0x50C
-    pub erasepage: ReadWrite<u32, ErasePage::Register>,
+    /// Address: 0x508 - 
+    _reserved2: [u32; 1],
+    // pub erasepage: ReadWrite<u32, ErasePage::Register>,
     /// Register for erasing all non-volatile user memory
     /// Address: 0x50C - 0x510
     pub eraseall: ReadWrite<u32, EraseAll::Register>,
-    _reserved2: u32,
+    _reserved3: [u32; 3],
     /// Register for erasing User Information Configuration Registers
     /// Address: 0x514 - 0x518
-    pub eraseuicr: ReadWrite<u32, EraseUicr::Register>,
+    // pub eraseuicr: ReadWrite<u32, EraseUicr::Register>,
+    pub erasepagepartialcfg: ReadWrite<u32, ErasePagrPartialCfg::Register>,
     /// Reserved
-    _reserved3: [u32; 10],
+    _reserved4: [u32; 8],
     /// Configuration register
     /// Address: 0x540 - 0x544
     pub icachecnf: ReadWrite<u32, CacheConfiguration::Register>,
     /// Reserved
-    _reserved4: u32,
+    _reserved5: u32,
     /// Configuration register
     /// Address: 0x548 - 0x54c
     pub ihit: ReadWrite<u32, CacheHit::Register>,
     /// Configuration register
     /// Address: 0x54C - 0x550
     pub imiss: ReadWrite<u32, CacheMiss::Register>,
+
+    _reserved6: [u32; 13],
+    pub configns: u32,
+    pub writeuicrns: u32,
 }
 
 register_bitfields! [u32,
@@ -102,6 +109,13 @@ register_bitfields! [u32,
             /// Start chip erase
             ERASE = 1
         ]
+    ],
+
+    /// Register for partial erase configuration
+    ErasePagrPartialCfg [
+        /// Duration of the partial erase in milliseconds.
+        /// The user must ensure that the total erase time is long enough for a complete erase of the flash page
+        DURATION OFFSET(0) NUMBITS(7) []
     ],
     /// Register for erasing User Information Configuration Registers
     EraseUicr [
@@ -228,14 +242,14 @@ impl Nvmc {
         self.registers.config.write(Configuration::WEN::Een);
     }
 
-    pub fn erase_uicr(&self) {
-        self.registers.config.write(Configuration::WEN::Een);
-        while !self.is_ready() {}
-        self.registers
-            .erasepage
-            .write(ErasePage::ERASEPAGE.val(0x10001000));
-        while !self.is_ready() {}
-    }
+    // pub fn erase_uicr(&self) {
+    //     self.registers.config.write(Configuration::WEN::Een);
+    //     while !self.is_ready() {}
+    //     self.registers
+    //         .erasepage
+    //         .write(ErasePage::ERASEPAGE.val(0x10001000));
+    //     while !self.is_ready() {}
+    // }
 
     /// Check if there is an ongoing operation with the NVMC peripheral.
     pub fn is_ready(&self) -> bool {
@@ -270,20 +284,20 @@ impl Nvmc {
         }
     }
 
-    fn erase_page_helper(&self, page_number: usize) {
-        // Put the NVMC in erase mode.
-        self.registers.config.write(Configuration::WEN::Een);
+    // fn erase_page_helper(&self, page_number: usize) {
+    //     // Put the NVMC in erase mode.
+    //     self.registers.config.write(Configuration::WEN::Een);
 
-        // Tell the NVMC to erase the correct page by passing in the correct
-        // address.
-        self.registers
-            .erasepage
-            .write(ErasePage::ERASEPAGE.val((page_number * PAGE_SIZE) as u32));
+    //     // Tell the NVMC to erase the correct page by passing in the correct
+    //     // address.
+    //     self.registers
+    //         .erasepage
+    //         .write(ErasePage::ERASEPAGE.val((page_number * PAGE_SIZE) as u32));
 
-        // Make sure that the NVMC is done. The CPU should be blocked while the
-        // erase is happening, but it doesn't hurt to check too.
-        while !self.registers.ready.is_set(Ready::READY) {}
-    }
+    //     // Make sure that the NVMC is done. The CPU should be blocked while the
+    //     // erase is happening, but it doesn't hurt to check too.
+    //     while !self.registers.ready.is_set(Ready::READY) {}
+    // }
 
     fn read_range(
         &self,
@@ -310,55 +324,55 @@ impl Nvmc {
         Ok(())
     }
 
-    fn write_page(
-        &self,
-        page_number: usize,
-        data: &'static mut NrfPage,
-    ) -> Result<(), (ErrorCode, &'static mut NrfPage)> {
-        // Need to erase the page first.
-        self.erase_page_helper(page_number);
+    // fn write_page(
+    //     &self,
+    //     page_number: usize,
+    //     data: &'static mut NrfPage,
+    // ) -> Result<(), (ErrorCode, &'static mut NrfPage)> {
+    //     // Need to erase the page first.
+    //     self.erase_page_helper(page_number);
 
-        // Put the NVMC in write mode.
-        self.registers.config.write(Configuration::WEN::Wen);
+    //     // Put the NVMC in write mode.
+    //     self.registers.config.write(Configuration::WEN::Wen);
 
-        for i in (0..data.len()).step_by(4) {
-            let word: u32 = (data[i + 0] as u32) << 0
-                | (data[i + 1] as u32) << 8
-                | (data[i + 2] as u32) << 16
-                | (data[i + 3] as u32) << 24;
+    //     for i in (0..data.len()).step_by(4) {
+    //         let word: u32 = (data[i + 0] as u32) << 0
+    //             | (data[i + 1] as u32) << 8
+    //             | (data[i + 2] as u32) << 16
+    //             | (data[i + 3] as u32) << 24;
 
-            let address = ((page_number * PAGE_SIZE) + i) as u32;
-            let location = unsafe { &*(address as *const VolatileCell<u32>) };
-            location.set(word);
-            while !self.registers.ready.is_set(Ready::READY) {}
-        }
+    //         let address = ((page_number * PAGE_SIZE) + i) as u32;
+    //         let location = unsafe { &*(address as *const VolatileCell<u32>) };
+    //         location.set(word);
+    //         while !self.registers.ready.is_set(Ready::READY) {}
+    //     }
 
-        // Make sure that the NVMC is done. The CPU should be blocked while the
-        // write is happening, but it doesn't hurt to check too.
-        while !self.registers.ready.is_set(Ready::READY) {}
+    //     // Make sure that the NVMC is done. The CPU should be blocked while the
+    //     // write is happening, but it doesn't hurt to check too.
+    //     while !self.registers.ready.is_set(Ready::READY) {}
 
-        // Save the buffer so we can return it with the callback.
-        self.buffer.replace(data);
+    //     // Save the buffer so we can return it with the callback.
+    //     self.buffer.replace(data);
 
-        // Mark the need for an interrupt so we can call the write done
-        // callback.
-        self.state.set(FlashState::Write);
-        self.deferred_call.set();
+    //     // Mark the need for an interrupt so we can call the write done
+    //     // callback.
+    //     self.state.set(FlashState::Write);
+    //     self.deferred_call.set();
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
-    fn erase_page(&self, page_number: usize) -> Result<(), ErrorCode> {
-        // Do the basic erase.
-        self.erase_page_helper(page_number);
+    // fn erase_page(&self, page_number: usize) -> Result<(), ErrorCode> {
+    //     // Do the basic erase.
+    //     self.erase_page_helper(page_number);
 
-        // Mark that we want to trigger a pseudo interrupt so that we can issue
-        // the callback even though the NVMC is completely blocking.
-        self.state.set(FlashState::Erase);
-        self.deferred_call.set();
+    //     // Mark that we want to trigger a pseudo interrupt so that we can issue
+    //     // the callback even though the NVMC is completely blocking.
+    //     self.state.set(FlashState::Erase);
+    //     self.deferred_call.set();
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }
 
 impl<C: hil::flash::Client<Self>> hil::flash::HasClient<'static, C> for Nvmc {
