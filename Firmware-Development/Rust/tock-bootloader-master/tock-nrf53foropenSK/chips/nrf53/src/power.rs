@@ -12,90 +12,107 @@ use kernel::utilities::registers::{
 use kernel::utilities::StaticRef;
 
 const POWER_BASE: StaticRef<PowerRegisters> =
-    unsafe { StaticRef::new(0x40000000 as *const PowerRegisters) };
+    unsafe { StaticRef::new(0x50005000 as *const PowerRegisters) };
 
+const REGULATORS_BASE: StaticRef<RegulatorRegisters> =
+    unsafe { StaticRef::new(0x50004000 as *const RegulatorRegisters) };
+
+const USBREGULATORS_BASE: StaticRef<UsbRegulatorRegisters> =
+    unsafe { StaticRef::new(0x50037000 as *const UsbRegulatorRegisters) };
 // Note: only the nrf52833+ have 9 banks, but we create all of them to avoid
 // gating this code by a feature.
 const NUM_RAM_BANKS: usize = 9;
 
-register_structs! {
-    PowerRegisters {
-        (0x000 => _reserved0),
-        /// Enable Constant Latency mode
-        (0x078 => task_constlat: WriteOnly<u32, Task::Register>),
-        /// Enable Low-power mode (variable latency)
-        (0x07C => task_lowpwr: WriteOnly<u32, Task::Register>),
-        (0x080 => _reserved1),
-        /// Power failure warning
-        (0x108 => event_pofwarn: ReadWrite<u32, Event::Register>),
-        (0x10C => _reserved2),
-        /// CPU entered WFI/WFE sleep
-        (0x114 => event_sleepenter: ReadWrite<u32, Event::Register>),
-        /// CPU exited WFI/WFE sleep
-        (0x118 => event_sleepexit: ReadWrite<u32, Event::Register>),
-        /// Voltage supply detected on VBUS
-        (0x11C => event_usbdetected: ReadWrite<u32, Event::Register>),
-        /// Voltage supply removed from VBUS
-        (0x120 => event_usbremoved: ReadWrite<u32, Event::Register>),
-        /// USB 3.3V supply ready
-        (0x124 => event_usbpwrrdy: ReadWrite<u32, Event::Register>),
-        (0x128 => _reserved3),
-        /// Enable interrupt
-        (0x304 => intenset: ReadWrite<u32, Interrupt::Register>),
-        /// Disable interrupt
-        (0x308 => intenclr: ReadWrite<u32, Interrupt::Register>),
-        (0x30C => _reserved4),
-        /// Reset reason
-        (0x400 => resetreas: ReadWrite<u32, ResetReason::Register>),
-        (0x404 => _reserved5),
-        /// USB supply status
-        (0x438 => usbregstatus: ReadOnly<u32, UsbRegStatus::Register>),
-        (0x43C => _reserved6),
-        /// System OFF register
-        (0x500 => systemoff: WriteOnly<u32, Task::Register>),
-        (0x504 => _reserved7),
-        /// Power failure comparator configuration
-        (0x510 => pofcon: ReadWrite<u32, PowerFailure::Register>),
-        (0x514 => _reserved8),
-        /// General purpose retention register
-        (0x51C => gpregret: ReadWrite<u32, Byte::Register>),
-        /// General purpose retention register
-        (0x520 => gpregret2: ReadWrite<u32, Byte::Register>),
-        (0x524 => _reserved9),
-        /// Enable DC/DC converter for REG1 stage
-        (0x578 => dcdcen: ReadWrite<u32, Task::Register>),
-        (0x57C => _reserved10),
-        /// Enable DC/DC converter for REG0 stage
-        (0x580 => dcdcen0: ReadWrite<u32, Task::Register>),
-        (0x584 => _reserved11),
-        /// Main supply status
-        (0x640 => mainregstatus: ReadOnly<u32, MainSupply::Register>),
-        (0x644 => _reserved12),
-        /// RAMx power control registers
-        /// - Address: 0x900 - 0x980 (<= nRF52832)
-        /// - Address: 0x900 - 0x990 (>= nRF52833)
-        (0x900 => ram: [RamPowerRegisters; NUM_RAM_BANKS]),
-        (0x990 => @END),
-    },
-
-    RamPowerRegisters {
-        /// RAMn power control register.
-        /// The RAM size will vary depending on product variant, and the
-        /// RAMn register will only be present if the corresponding RAM AHB
-        /// slave is present on the device.
-        (0x000 => power: ReadWrite<u32, RamPower::Register>),
-        /// RAMn power control set register
-        (0x004 => powerset: WriteOnly<u32, RamPower::Register>),
-        /// RAMn power control clear register
-        (0x008 => powerclr: WriteOnly<u32, RamPower::Register>),
-        (0x00C => _reserved),
-        (0x010 => @END),
-    }
+#[repr(C)]
+struct PowerRegisters {
+    _reserved0: [u32; 0x1E], 
+    task_constlat: WriteOnly<u32, Task::Register>, 
+    task_lowpwr: WriteOnly<u32, Task::Register>,  
+    _reserved1: [u32; 0x1E],       
+    subscribe_constlat: u32,
+    subscribe_lowpwr: u32,
+    _reserved2: [u32; 0x2],
+    event_pofwarn: ReadWrite<u32, Event::Register>, 
+    _reserved3: [u32; 0x2],                          
+    event_sleepenter: ReadWrite<u32, Event::Register>, 
+    event_sleepexit: ReadWrite<u32, Event::Register>,
+    _reserved4: [u32; 0x1B],
+    publish_pofwarn: ReadWrite<u32, Event::Register>, 
+    _reserved5: [u32; 0x2],
+    publish_sleepenter: ReadWrite<u32, Event::Register>, 
+    publish_sleepexit: ReadWrite<u32, Event::Register>,   
+    _reserved6: [u32; 0x59],
+    inten: ReadWrite<u32, PowerInterrupt::Register>,
+    intenset: ReadWrite<u32, PowerInterrupt::Register>,
+    intenclr: ReadWrite<u32, PowerInterrupt::Register>,
+    _reserved7: [u32; 0x84], 
+    gpregret: [ReadWrite<u32, Byte::Register>; 2], 
 }
+
+#[repr(C)]
+struct RegulatorRegisters {
+    _reservedd0: [u32; 0x10A],
+    mainregstatus: ReadOnly<u32, MainSupply::Register>,
+    _reserved1: [u32; 0x35],
+    systemoff: WriteOnly<u32, Task::Register>,
+    _reserved2: [u32; 0x3],
+    pofcon: ReadWrite<u32, PowerFailure::Register>,
+    _reserved3: [u32; 0x7C],
+    vregmaindcdcen: ReadWrite<u32, RegulatorEnable::Register>,
+    _reserved4: [u32; 0x7F],
+    vregradiodcdcen: ReadWrite<u32, RegulatorEnable::Register>,
+    _reserved5: [u32; 0x7E],
+    vreghdcdcen: ReadWrite<u32, RegulatorEnable::Register>,
+}
+
+#[repr(C)]
+pub struct UsbRegulatorRegisters {
+    _reserved0: [u32; 0x40],
+    /// Voltage supply detected on VBUS
+    pub events_usbdetected: ReadWrite<u32, Event::Register>, // 0x100
+
+    /// Voltage supply removed from VBUS
+    pub events_usbremoved: ReadWrite<u32, Event::Register>,  // 0x104
+
+    /// USB 3.3 V supply ready
+    pub events_usbpwrrdy: ReadWrite<u32, Event::Register>,   // 0x108
+
+    _reserved1: [u32; 0x1D], // Padding from 0x10C to 0x17F
+
+    /// Publish configuration for event USBDETECTED
+    pub publish_usbdetected: ReadWrite<u32, Publish::Register>, // 0x180
+
+    /// Publish configuration for event USBREMOVED
+    pub publish_usbremoved: ReadWrite<u32, Publish::Register>,  // 0x184
+
+    /// Publish configuration for event USBPWRRDY
+    pub publish_usbpwrrdy: ReadWrite<u32, Publish::Register>,   // 0x188
+
+    _reserved2: [u32; 0x5D], // Padding from 0x18C to 0x2FF
+
+    /// Enable or disable interrupt
+    pub inten: ReadWrite<u32, USBInterrupt::Register>,     // 0x300
+
+    /// Enable interrupt
+    pub intenset: ReadWrite<u32, USBInterrupt::Register>,  // 0x304
+
+    /// Disable interrupt
+    pub intenclr: ReadWrite<u32, USBInterrupt::Register>,  // 0x308
+
+    _reserved3: [u32; 0x3D], // Padding from 0x30C to 0x3FF
+
+    /// USB supply status
+    pub usbregstatus: ReadOnly<u32, UsbRegStatus::Register>, // 0x400
+}
+
 
 register_bitfields! [u32,
     /// Start task
     Task [
+        ENABLE OFFSET(0) NUMBITS(1)
+    ],
+
+    RegulatorEnable [
         ENABLE OFFSET(0) NUMBITS(1)
     ],
 
@@ -105,13 +122,16 @@ register_bitfields! [u32,
     ],
 
     /// Power management Interrupts
-    Interrupt [
-        POFWARN OFFSET(2) NUMBITS(1),
-        SLEEPENTER OFFSET(5) NUMBITS(1),
-        SLEEPEXIT OFFSET(6) NUMBITS(1),
-        USBDETECTED OFFSET(7) NUMBITS(1),
-        USBREMOVED OFFSET(8) NUMBITS(1),
-        USBPWRRDY OFFSET(9) NUMBITS(1)
+    PowerInterrupt [
+        POFWARN OFFSET(0) NUMBITS(1),
+        SLEEPENTER OFFSET(1) NUMBITS(1),
+        SLEEPEXIT OFFSET(2) NUMBITS(1),
+    ],
+
+    USBInterrupt [
+        USBDETECTED OFFSET(0) NUMBITS(1),
+        USBREMOVED OFFSET(1) NUMBITS(1),
+        USBPWRRDY OFFSET(2) NUMBITS(1)
     ],
 
     ResetReason [
@@ -187,6 +207,11 @@ register_bitfields! [u32,
         VALUE OFFSET(0) NUMBITS(8)
     ],
 
+    Publish [
+        CHIDX OFFSET(0) NUMBITS(8),
+        EN OFFSET(31) NUMBITS(1)
+    ],
+
     UsbRegStatus [
         VBUSDETECT OFFSET(0) NUMBITS(1),
         OUTPUTRDY OFFSET(1) NUMBITS(1)
@@ -241,6 +266,8 @@ register_bitfields! [u32,
 /// this has a USB client to notify.
 pub struct Power<'a> {
     registers: StaticRef<PowerRegisters>,
+    regulators: StaticRef<RegulatorRegisters>,
+    usbregulators: StaticRef<UsbRegulatorRegisters>,
     /// A client to which to notify USB plug-in/plug-out/power-ready events.
     usb_client: OptionalCell<&'a dyn PowerClient>,
 }
@@ -271,6 +298,8 @@ impl<'a> Power<'a> {
     pub const fn new() -> Self {
         Power {
             registers: POWER_BASE,
+            regulators: REGULATORS_BASE,
+            usbregulators: USBREGULATORS_BASE,
             usb_client: OptionalCell::empty(),
         }
     }
@@ -282,20 +311,20 @@ impl<'a> Power<'a> {
     pub fn handle_interrupt(&self) {
         self.disable_all_interrupts();
 
-        if self.registers.event_usbdetected.is_set(Event::READY) {
-            self.registers.event_usbdetected.write(Event::READY::CLEAR);
+        if self.usbregulators.events_usbdetected.is_set(Event::READY) {
+            self.usbregulators.events_usbdetected.write(Event::READY::CLEAR);
             self.usb_client
                 .map(|client| client.handle_power_event(PowerEvent::UsbPluggedIn));
         }
 
-        if self.registers.event_usbremoved.is_set(Event::READY) {
-            self.registers.event_usbremoved.write(Event::READY::CLEAR);
+        if self.usbregulators.events_usbremoved.is_set(Event::READY) {
+            self.usbregulators.events_usbremoved.write(Event::READY::CLEAR);
             self.usb_client
                 .map(|client| client.handle_power_event(PowerEvent::UsbPluggedOut));
         }
 
-        if self.registers.event_usbpwrrdy.is_set(Event::READY) {
-            self.registers.event_usbpwrrdy.write(Event::READY::CLEAR);
+        if self.usbregulators.events_usbpwrrdy.is_set(Event::READY) {
+            self.usbregulators.events_usbpwrrdy.write(Event::READY::CLEAR);
             self.usb_client
                 .map(|client| client.handle_power_event(PowerEvent::UsbPowerReady));
         }
@@ -309,27 +338,28 @@ impl<'a> Power<'a> {
     }
 
     pub fn enable_interrupts(&self) {
-        self.registers.intenset.write(
-            Interrupt::USBDETECTED::SET + Interrupt::USBREMOVED::SET + Interrupt::USBPWRRDY::SET,
+        self.usbregulators.intenset.write(
+            USBInterrupt::USBDETECTED::SET + USBInterrupt::USBREMOVED::SET + USBInterrupt::USBPWRRDY::SET,
         );
     }
 
     pub fn enable_interrupt(&self, intr: u32) {
-        self.registers.intenset.set(intr);
+        self.usbregulators.intenset.set(intr);
     }
 
     pub fn clear_interrupt(&self, intr: u32) {
-        self.registers.intenclr.set(intr);
+        self.usbregulators.intenclr.set(intr);
     }
 
     pub fn disable_all_interrupts(&self) {
         // disable all possible interrupts
         self.registers.intenclr.set(0xffffffff);
+        self.usbregulators.intenclr.set(0xffffffff);
     }
 
     pub fn get_main_supply_status(&self) -> MainVoltage {
         match self
-            .registers
+            .regulators
             .mainregstatus
             .read_as_enum(MainSupply::MAINREGSTATUS)
         {
@@ -341,11 +371,11 @@ impl<'a> Power<'a> {
     }
 
     pub fn is_vbus_present(&self) -> bool {
-        self.registers.usbregstatus.is_set(UsbRegStatus::VBUSDETECT)
+        self.usbregulators.usbregstatus.is_set(UsbRegStatus::VBUSDETECT)
     }
 
     pub fn is_usb_power_ready(&self) -> bool {
-        self.registers.usbregstatus.is_set(UsbRegStatus::OUTPUTRDY)
+        self.usbregulators.usbregstatus.is_set(UsbRegStatus::OUTPUTRDY)
     }
 
     /// Return the contents of the GPREGRET (general purpose retention register)
@@ -357,7 +387,7 @@ impl<'a> Power<'a> {
     /// This is used to set a flag before a reset to instruct the bootloader to
     /// stay in the bootloader mode.
     pub fn get_gpregret(&self) -> u8 {
-        self.registers.gpregret.read(Byte::VALUE) as u8
+        self.registers.gpregret[0].read(Byte::VALUE) as u8
     }
 
     /// Set the value of the GPREGRET (general purpose retention register)
@@ -366,6 +396,6 @@ impl<'a> Power<'a> {
     /// This is used to set a flag before a reset to instruct the bootloader to
     /// stay in the bootloader mode.
     pub fn set_gpregret(&self, val: u8) {
-        self.registers.gpregret.write(Byte::VALUE.val(val as u32));
+        self.registers.gpregret[0].write(Byte::VALUE.val(val as u32));
     }
 }
