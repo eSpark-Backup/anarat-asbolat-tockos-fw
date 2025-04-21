@@ -16,14 +16,14 @@ edition = "2021"
 # nrf52_components = { git = "https://github.com/tock/tock", rev = "2ff6868" }
 
 # For Development
-cortexm4 = { path = "../../../tock-nrf53foropenSK/arch/cortex-m4" }
-capsules-core = { path = "../../../tock-nrf53foropenSK/capsules/core" }
-capsules-extra = { path = "../../../tock-nrf53foropenSK/capsules/extra" }
-kernel = { path = "../../../tock-nrf53foropenSK/kernel" }
-nrf53 = { path = "../../../tock-nrf53foropenSK/chips/nrf53" }
-nrf5340 = { path = "../../../tock-nrf53foropenSK/chips/nrf5340" }
-components = { path = "../../../tock-nrf53foropenSK/boards/components" }
-nrf53_components = { path = "../../../tock-nrf53foropenSK/boards/nordic/nrf53_components" }
+cortexm4 = { path = "../../tock-nrf53foropenSK/arch/cortex-m4" }
+capsules-core = { path = "../../tock-nrf53foropenSK/capsules/core" }
+capsules-extra = { path = "../../tock-nrf53foropenSK/capsules/extra" }
+kernel = { path = "../../tock-nrf53foropenSK/kernel" }
+nrf53 = { path = "../../tock-nrf53foropenSK/chips/nrf53" }
+nrf5340 = { path = "../../tock-nrf53foropenSK/chips/nrf5340" }
+components = { path = "../../tock-nrf53foropenSK/boards/components" }
+nrf53_components = { path = "../../tock-nrf53foropenSK/boards/nordic/nrf53_components" }
 
 bootloader = { path = "../../bootloader" }
 bootloader_nrf53 = { path = "../../chips/bootloader_nrf53" }
