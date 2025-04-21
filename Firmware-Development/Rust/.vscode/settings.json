@@ -1,5 +1,0 @@
-{
-    "files.autoSave": "afterDelay",
-    "cortex-debug.objdumpPath": "/usr/bin/objdump-multiarch",
-    "cortex-debug.gdbPath": "/usr/bin/gdb-multiarch"
-}
