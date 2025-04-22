@@ -53,7 +53,7 @@ static mut CHIP: Option<&'static nrf5340::chip::NRF53<Nrf5340DefaultPeripherals>
 /// Dummy buffer that causes the linker to reserve enough space for the stack.
 #[no_mangle]
 #[link_section = ".stack_buffer"]
-pub static mut STACK_MEMORY: [u8; 0x2000] = [0; 0x2000];
+pub static mut STACK_MEMORY: [u8; 0x8000] = [0; 0x8000];
 
 /// Function to allow the bootloader to exit by reseting the chip.
 fn bootloader_exit() {
@@ -164,10 +164,14 @@ pub unsafe fn main() {
 
     // Decide very early if we want to stay in the bootloader so we don't run a
     // bunch of init code just to reset into the kernel.
+    let nrf_power = static_init!(
+        nrf53::power::Power,
+        nrf53::power::Power::new()
+    );
 
     let bootloader_entry_mode = static_init!(
-        bootloader_nrf53::bootloader_entry_doublereset::BootloaderEntryDoubleReset,
-        bootloader_nrf53::bootloader_entry_doublereset::BootloaderEntryDoubleReset::new()
+        bootloader_nrf53::bootloader_entry_gpregret::BootloaderEntryGpRegRet,
+        bootloader_nrf53::bootloader_entry_gpregret::BootloaderEntryGpRegRet::new(nrf_power)
     );
 
     let bootloader_jumper = static_init!(

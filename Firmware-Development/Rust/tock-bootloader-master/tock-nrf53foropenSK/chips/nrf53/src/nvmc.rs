@@ -324,43 +324,43 @@ impl Nvmc {
         Ok(())
     }
 
-    // fn write_page(
-    //     &self,
-    //     page_number: usize,
-    //     data: &'static mut NrfPage,
-    // ) -> Result<(), (ErrorCode, &'static mut NrfPage)> {
-    //     // Need to erase the page first.
-    //     self.erase_page_helper(page_number);
+    fn write_page(
+        &self,
+        page_number: usize,
+        data: &'static mut NrfPage,
+    ) -> Result<(), (ErrorCode, &'static mut NrfPage)> {
+        // Need to erase the page first.
+        // self.erase_page_helper(page_number);
 
-    //     // Put the NVMC in write mode.
-    //     self.registers.config.write(Configuration::WEN::Wen);
+        // Put the NVMC in write mode.
+        self.registers.config.write(Configuration::WEN::Wen);
 
-    //     for i in (0..data.len()).step_by(4) {
-    //         let word: u32 = (data[i + 0] as u32) << 0
-    //             | (data[i + 1] as u32) << 8
-    //             | (data[i + 2] as u32) << 16
-    //             | (data[i + 3] as u32) << 24;
+        for i in (0..data.len()).step_by(4) {
+            let word: u32 = (data[i + 0] as u32) << 0
+                | (data[i + 1] as u32) << 8
+                | (data[i + 2] as u32) << 16
+                | (data[i + 3] as u32) << 24;
 
-    //         let address = ((page_number * PAGE_SIZE) + i) as u32;
-    //         let location = unsafe { &*(address as *const VolatileCell<u32>) };
-    //         location.set(word);
-    //         while !self.registers.ready.is_set(Ready::READY) {}
-    //     }
+            let address = ((page_number * PAGE_SIZE) + i) as u32;
+            let location = unsafe { &*(address as *const VolatileCell<u32>) };
+            location.set(word);
+            while !self.registers.ready.is_set(Ready::READY) {}
+        }
 
-    //     // Make sure that the NVMC is done. The CPU should be blocked while the
-    //     // write is happening, but it doesn't hurt to check too.
-    //     while !self.registers.ready.is_set(Ready::READY) {}
+        // Make sure that the NVMC is done. The CPU should be blocked while the
+        // write is happening, but it doesn't hurt to check too.
+        while !self.registers.ready.is_set(Ready::READY) {}
 
-    //     // Save the buffer so we can return it with the callback.
-    //     self.buffer.replace(data);
+        // Save the buffer so we can return it with the callback.
+        self.buffer.replace(data);
 
-    //     // Mark the need for an interrupt so we can call the write done
-    //     // callback.
-    //     self.state.set(FlashState::Write);
-    //     self.deferred_call.set();
+        // Mark the need for an interrupt so we can call the write done
+        // callback.
+        self.state.set(FlashState::Write);
+        self.deferred_call.set();
 
-    //     Ok(())
-    // }
+        Ok(())
+    }
 
     // fn erase_page(&self, page_number: usize) -> Result<(), ErrorCode> {
     //     // Do the basic erase.

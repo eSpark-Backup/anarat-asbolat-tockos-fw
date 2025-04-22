@@ -61,7 +61,7 @@ const CHIPINFO_BASE: StaticRef<ChipInfoRegisters> =
     unsafe { StaticRef::new(0x10000130 as *const ChipInfoRegisters) };
 
 const USBD_BASE: StaticRef<UsbdRegisters<'static>> =
-    unsafe { StaticRef::new(0x40027000 as *const UsbdRegisters<'static>) };
+    unsafe { StaticRef::new(0x50036000 as *const UsbdRegisters<'static>) };
 
 const USBERRATA_BASE: StaticRef<UsbErrataRegisters> =
     unsafe { StaticRef::new(0x4006E000 as *const UsbErrataRegisters) };

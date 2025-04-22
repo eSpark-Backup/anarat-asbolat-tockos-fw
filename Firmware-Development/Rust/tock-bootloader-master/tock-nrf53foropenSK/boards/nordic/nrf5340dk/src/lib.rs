@@ -100,7 +100,7 @@ const BUTTON1_PIN: Pin = Pin::P0_23;
 const BUTTON2_PIN: Pin = Pin::P0_24;
 const BUTTON3_PIN: Pin = Pin::P0_08;
 const BUTTON4_PIN: Pin = Pin::P0_09;
-// const BUTTON_RST_PIN: Pin = Pin::P0_18;
+const BUTTON_RST_PIN: Pin = Pin::P0_18;
 
 // const UART_RTS: Option<Pin> = Some(Pin::P0_05);
 // const UART_TXD: Pin = Pin::P0_06;
@@ -472,7 +472,7 @@ pub unsafe fn start() -> (
     // platforms.
     nrf53_components::startup::NrfStartupComponent::new(
         false,
-        // BUTTON_RST_PIN,
+        BUTTON_RST_PIN,
         nrf5340::uicr::Regulator0Output::DEFAULT,
         &base_peripherals.nvmc,
     );
