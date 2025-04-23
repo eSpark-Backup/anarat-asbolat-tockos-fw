@@ -9,7 +9,7 @@ include ../../Makefile.common
 TOCKLOADER=tockloader
 
 # Where in the SAM4L flash to load the kernel with `tockloader`
-KERNEL_ADDRESS=0x18000
+KERNEL_ADDRESS=0x0
 
 # Upload programs over uart with tockloader
 ifdef PORT

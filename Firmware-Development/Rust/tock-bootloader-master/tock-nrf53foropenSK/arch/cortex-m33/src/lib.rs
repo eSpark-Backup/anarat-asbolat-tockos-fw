@@ -11,10 +11,9 @@
 use core::fmt::Write;
 
 pub mod mpu {
-    pub type MPU = cortexm::mpu::MPU<8, 32>;
+    pub type MPU = cortexm::mpu::MPU<16, 32>; // Cortex-M7 MPU has 16 regions
 }
 
-pub use cortexm::dwt;
 pub use cortexm::initialize_ram_jump_to_main;
 pub use cortexm::nvic;
 pub use cortexm::scb;
@@ -29,17 +28,17 @@ pub use cortexm::CortexMVariant;
 pub enum CortexM33 {}
 
 impl cortexm::CortexMVariant for CortexM33 {
-    const GENERIC_ISR: unsafe extern "C" fn() = cortexv7m::generic_isr_arm_v7m;
-    const SYSTICK_HANDLER: unsafe extern "C" fn() = cortexv7m::systick_handler_arm_v7m;
-    const SVC_HANDLER: unsafe extern "C" fn() = cortexv7m::svc_handler_arm_v7m;
-    const HARD_FAULT_HANDLER: unsafe extern "C" fn() = cortexv7m::hard_fault_handler_arm_v7m;
+    const GENERIC_ISR: unsafe extern "C" fn() = cortexv8m::generic_isr_arm_v8m;
+    const SYSTICK_HANDLER: unsafe extern "C" fn() = cortexv8m::systick_handler_arm_v8m;
+    const SVC_HANDLER: unsafe extern "C" fn() = cortexv8m::svc_handler_arm_v8m;
+    const HARD_FAULT_HANDLER: unsafe extern "C" fn() = cortexv8m::hard_fault_handler_arm_v8m;
 
     #[cfg(all(target_arch = "arm", target_os = "none"))]
     unsafe fn switch_to_user(
         user_stack: *const usize,
         process_regs: &mut [usize; 8],
     ) -> *const usize {
-        cortexv7m::switch_to_user_arm_v7m(user_stack, process_regs)
+        cortexv8m::switch_to_user_arm_v8m(user_stack, process_regs)
     }
 
     #[cfg(not(all(target_arch = "arm", target_os = "none")))]
