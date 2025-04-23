@@ -45,6 +45,61 @@ include!(concat!(env!("OUT_DIR"), "/attributes.rs"));
 // Number of concurrent processes this platform supports.
 const NUM_PROCS: usize = 0;
 
+#[repr(C, packed)]
+#[derive(Debug)]
+pub struct FwInfo {
+    /// Magic value to verify format compatibility.
+    pub magic: [u32; 3], // MAGIC_LEN_WORDS = 3 (as per your earlier #define)
+
+    /// Total size of this fw_info struct including the EXT_API lists.
+    pub total_size: u32,
+
+    /// Size of the firmware image code.
+    pub size: u32,
+
+    /// Monotonically increasing version counter.
+    pub version: u32,
+
+    /// Start address of the image.
+    pub address: u32,
+
+    /// Boot point (vector table) of the firmware.
+    pub boot_address: u32,
+
+    /// Validity flag (e.g., CONFIG_FW_INFO_VALID_VAL).
+    pub valid: u32,
+
+    /// Reserved (must be zero).
+    pub reserved: [u32; 4],
+
+    /// Number of EXT_APIs in ext_apis[] list.
+    pub ext_api_num: u32,
+
+    /// Number of EXT_API requests in ext_apis[] list.
+    pub ext_api_request_num: u32,
+
+    /// Flexible array of EXT_API entries follows this struct.
+    pub ext_apis: [u8; 0], // Placeholder for flexible array (can also use `*const ExtApi`)
+}
+
+#[no_mangle]
+#[used]
+#[link_section = ".firmware_info"]
+pub static FW_INFO: FwInfo = FwInfo {
+    magic: [0x281ee6de, 0x8fcebb4c, 13570], // Equivalent to FIRMWARE_INFO_MAGIC
+    total_size: core::mem::size_of::<FwInfo>() as u32,
+    size: 0x4C00,            // You can set this to your firmware image size
+    version: 1,
+    address: 0x8000,         // Start address of firmware
+    boot_address: 0x8000,    // Typically same as address, for vector table
+    valid: 0x9102FFFF,                 // CONFIG_FW_INFO_VALID_VAL equivalent
+    reserved: [0; 4],
+    ext_api_num: 0,
+    ext_api_request_num: 0,
+    ext_apis: [],             // Flexible array; sized manually at runtime if needed
+};
+unsafe impl Sync for FwInfo {}
+
 static mut PROCESSES: [Option<&'static dyn kernel::process::Process>; NUM_PROCS] =
     [None; NUM_PROCS];
 

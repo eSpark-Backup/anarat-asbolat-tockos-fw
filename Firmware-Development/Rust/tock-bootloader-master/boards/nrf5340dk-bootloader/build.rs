@@ -11,7 +11,7 @@ fn main() {
     } else {
         String::from("1.1.3")
     };
-    bootloader_attributes::write_flags(&mut f, &version, 0x10000);
+    bootloader_attributes::write_flags(&mut f, &version, 0x18000);
     bootloader_attributes::write_attribute(&mut f, "board", "nrf5340dk");
     bootloader_attributes::write_attribute(&mut f, "arch", "cortex-m4");
     bootloader_attributes::write_attribute(&mut f, "appaddr", "0x40000");

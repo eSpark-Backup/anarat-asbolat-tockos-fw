@@ -355,7 +355,7 @@ clean::
 	$(Q)$(CARGO) clean $(VERBOSE_FLAGS) --target-dir=$(TARGET_DIRECTORY)
 
 .PHONY: release
-release:  $(TARGET_PATH)/release/$(PLATFORM).bin
+release:  $(TARGET_PATH)/release/$(PLATFORM).bin $(TARGET_PATH)/release/$(PLATFORM).hex
 
 .PHONY: debug
 debug:  $(TARGET_PATH)/debug/$(PLATFORM).bin
@@ -427,6 +427,9 @@ target:
 	$(Q)$(OBJCOPY) --output-target=binary $(OBJCOPY_FLAGS) $< $@
 	$(Q)$(SHA256SUM) $@
 
+%.hex: %.elf
+	$(Q)$(OBJCOPY) -O ihex $(OBJCOPY_FLAGS) $< $@
+  
 %.lst: %.elf
 	$(Q)$(OBJDUMP) $(OBJDUMP_FLAGS) $< > $@
 

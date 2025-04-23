@@ -69,6 +69,7 @@ SECTIONS
          */
         KEEP(*(.vectors .vectors.*))
         KEEP(*(.irqs))
+        INCLUDE firmware_info_layout.ld
     } > rom
 
     .attribute :
@@ -106,7 +107,6 @@ SECTIONS
            here to save someone headache if they ever attempt to port Tock to a
            Cortex-A core.  */
         *(.glue_7t) *(.glue_7)
-
 
         /* Constructor and destructor sections:
 

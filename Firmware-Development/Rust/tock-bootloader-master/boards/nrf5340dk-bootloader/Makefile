@@ -17,7 +17,7 @@ define make_jlink_cmd
 	echo "if $(JLINK_IF)" >> $(JLINK_CMD_FILE); \
 	echo "connect" >> $(JLINK_CMD_FILE); \
 	echo "r" >> $(JLINK_CMD_FILE); \
-	echo "loadbin $<, 0x0" >> $(JLINK_CMD_FILE); \
+	echo "loadbin $<, 0x8000" >> $(JLINK_CMD_FILE); \
 	echo "r" >> $(JLINK_CMD_FILE); \
 	echo "g" >> $(JLINK_CMD_FILE); \
 	echo "exit" >> $(JLINK_CMD_FILE)
