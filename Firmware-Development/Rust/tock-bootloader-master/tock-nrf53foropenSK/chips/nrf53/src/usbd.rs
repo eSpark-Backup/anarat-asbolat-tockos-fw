@@ -16,6 +16,7 @@ use kernel::utilities::registers::{
 };
 use kernel::utilities::StaticRef;
 
+use nrf_usbd::{UsbPeripheral};
 use crate::power;
 
 // The following macros provide some diagnostics and panics(!)
@@ -2206,3 +2207,9 @@ fn ignored_str(
         " (ignored)"
     }
 }
+
+unsafe impl UsbPeripheral for Usbd<'static> {
+    const REGISTERS: *const () = 0x50036000 as *const ();
+}
+unsafe impl Send for Usbd<'static> {}
+unsafe impl Sync for Usbd<'static> {}

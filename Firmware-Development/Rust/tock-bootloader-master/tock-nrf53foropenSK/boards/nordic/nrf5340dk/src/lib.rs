@@ -475,8 +475,7 @@ pub unsafe fn start() -> (
         BUTTON_RST_PIN,
         nrf5340::uicr::Regulator0Output::DEFAULT,
         &base_peripherals.nvmc,
-    );
-    // .finalize(());
+    ).finalize(());
 
     //--------------------------------------------------------------------------
     // CAPABILITIES

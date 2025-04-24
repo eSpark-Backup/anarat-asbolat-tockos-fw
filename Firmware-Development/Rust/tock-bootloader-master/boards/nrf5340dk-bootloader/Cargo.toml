@@ -28,6 +28,9 @@ nrf53_components = { path = "../../tock-nrf53foropenSK/boards/nordic/nrf53_compo
 bootloader = { path = "../../bootloader" }
 bootloader_nrf53 = { path = "../../chips/bootloader_nrf53" }
 bootloader_cortexm = { path = "../../arch/bootloader_cortexm" }
+usbd-dfu = "=0.4.0"
+usb-device = "0.3.2"
+nrf-usbd = "=0.3.0"
 
 
 [build-dependencies]
@@ -44,3 +47,4 @@ panic = "abort"
 lto = true
 opt-level = "z"
 debug = false
+

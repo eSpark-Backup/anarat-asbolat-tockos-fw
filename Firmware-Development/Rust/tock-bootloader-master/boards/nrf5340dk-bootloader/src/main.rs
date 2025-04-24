@@ -28,6 +28,12 @@ use capsules_core::virtualizers::virtual_alarm::VirtualMuxAlarm;
 use nrf5340::gpio::Pin;
 use nrf5340::interrupt_service::Nrf5340DefaultPeripherals;
 
+use usb_device::{bus::UsbBusAllocator, prelude::*};
+use usbd_dfu::*;
+use core::mem::MaybeUninit;
+use nrf_usbd::{UsbPeripheral, Usbd};
+use nrf5340::usbd;
+
 const UART_TXD: Pin = Pin::P0_06;
 const UART_RXD: Pin = Pin::P0_08;
 const BUTTON_RST_PIN: Pin = Pin::P0_18;
@@ -192,6 +198,59 @@ unsafe fn create_peripherals() -> &'static mut Nrf5340DefaultPeripherals<'static
     nrf5340_peripherals
 }
 
+struct MyMem {
+    buffer: [u8; 64],
+    flash_memory: [u8; 1024],
+}
+
+impl DFUMemIO for MyMem {
+    const MEM_INFO_STRING: &'static str = "@Flash/0x00000000/1*1Kg";
+    const INITIAL_ADDRESS_POINTER: u32 = 0x0;
+    const PROGRAM_TIME_MS: u32 = 8;
+    const ERASE_TIME_MS: u32 = 50;
+    const FULL_ERASE_TIME_MS: u32 = 50;
+    const TRANSFER_SIZE: u16 = 64;
+
+    fn read(&mut self, address: u32, length: usize) -> Result<&[u8], DFUMemError> {
+        // TODO: check address value
+        let offset = address as usize;
+        Ok(&self.flash_memory[offset..offset+length])
+    }
+
+    fn erase(&mut self, address: u32) -> Result<(), DFUMemError> {
+        // TODO: check address value
+        self.flash_memory.fill(0xff);
+        // TODO: verify that block is erased successfully
+        Ok(())
+    }
+
+    fn erase_all(&mut self) -> Result<(), DFUMemError> {
+        // There is only one block, erase it.
+        self.erase(0)
+    }
+
+    fn store_write_buffer(&mut self, src:&[u8]) -> Result<(), ()>{
+        self.buffer[..src.len()].copy_from_slice(src);
+        Ok(())
+    }
+
+    fn program(&mut self, address: u32, length: usize) -> Result<(), DFUMemError>{
+        // TODO: check address value
+        let offset = address as usize;
+
+        // Write buffer to a memory
+        self.flash_memory[offset..offset+length].copy_from_slice(&self.buffer[..length]);
+
+        // TODO: verify that memory is programmed correctly
+        Ok(())
+    }
+
+    fn manifestation(&mut self) -> Result<(), DFUManifestationError> {
+        // Nothing to do to activate FW
+        Ok(())
+    }
+}
+
 /// Entry point in the vector table called on hard reset.
 #[no_mangle]
 pub unsafe fn main() {
@@ -299,6 +358,18 @@ pub unsafe fn main() {
 
     let null_scheduler = static_init!(NullScheduler, NullScheduler::new());
 
+    let usbd = &nrf5340_peripherals.usbd;
+    usbd.set_power_ref(nrf_power);
+    
+    let mut my_mem = MyMem {
+        buffer: [0u8; 64],
+        flash_memory: [0u8; 1024],
+    };
+
+    let usb_bus = UsbBusAllocator::new(Usbd::new(usbd));
+
+    // let mut dfu = DFUClass::new(usb_bus, my_mem);
+
     //--------------------------------------------------------------------------
     // BOOTLOADER
     //--------------------------------------------------------------------------
@@ -330,18 +401,6 @@ pub unsafe fn main() {
         None,
         None,
     );
-    // base_peripherals.uarte0.configure(uart::Parameters {
-    //     baud_rate: 115200,
-    //     stop_bits: uart::StopBits::One,
-    //     parity: uart::Parity::None,
-    //     hw_flow_control: false,
-    //     width: uart::Width::Eight,
-    // });
-    
-    // let hello_msg: &'static mut [u8] = static_init!([u8; 14], *b"Hello, UART!\r\n");
-
-    // // This blocks until the UART is done transmitting
-    // let _ = hil::uart::Transmit::transmit_buffer(&base_peripherals.uarte0, hello_msg, hello_msg.len());
 
     let nrfpagebuffer = static_init!(nrf53::nvmc::NrfPage, nrf53::nvmc::NrfPage::default());
 
