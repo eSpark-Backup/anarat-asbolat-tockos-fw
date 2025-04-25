@@ -32,7 +32,8 @@ use usb_device::{bus::UsbBusAllocator, prelude::*};
 use usbd_dfu::*;
 use core::mem::MaybeUninit;
 use nrf_usbd::{UsbPeripheral, Usbd};
-use nrf5340::usbd;
+use usb_device::device::{StringDescriptors, UsbDeviceBuilder, UsbVidPid};
+use usbd_serial::{SerialPort, USB_CLASS_CDC};
 
 const UART_TXD: Pin = Pin::P0_06;
 const UART_RXD: Pin = Pin::P0_08;
@@ -366,8 +367,49 @@ pub unsafe fn main() {
         flash_memory: [0u8; 1024],
     };
 
-    let usb_bus = UsbBusAllocator::new(Usbd::new(usbd));
+    let usb_bus = UsbBusAllocator::new(Usbd::new(Peripheral));
 
+    let mut serial = SerialPort::new(&usb_bus);
+
+    let mut usb_dev = UsbDeviceBuilder::new(&usb_bus, UsbVidPid(0x16c0, 0x27dd))
+        .strings(&[
+            StringDescriptors::new(usb_device::LangID::EN).product("nRF52840 Serial Port Demo")
+        ])
+        .unwrap()
+        .device_class(USB_CLASS_CDC)
+        .max_packet_size_0(64) // (makes control transfers 8x faster)
+        .unwrap()
+        .build();
+
+        loop {
+            if !usb_dev.poll(&mut [&mut serial]) {
+                continue;
+            }
+    
+            let mut buf = [0u8; 64];
+    
+            match serial.read(&mut buf) {
+                Ok(count) if count > 0 => {
+                    let mut buf = &mut buf[..count];
+    
+                    // Echo back in upper case
+                    for c in buf.iter_mut() {
+                        if 0x61 <= *c && *c <= 0x7a {
+                            *c &= !0x20;
+                        }
+                    }
+
+                    while !buf.is_empty() {
+                        match serial.write(buf) {
+                            Ok(len) => buf = &mut buf[len..],
+                            _ => {}
+                        }
+                    }
+
+                }
+                _ => {}
+            }
+        }
     // let mut dfu = DFUClass::new(usb_bus, my_mem);
 
     //--------------------------------------------------------------------------
@@ -485,4 +527,9 @@ pub unsafe fn main() {
 #[panic_handler]
 unsafe fn panic_fmt(_pi: &PanicInfo) -> ! {
     loop {}
+}
+
+struct Peripheral;
+unsafe impl UsbPeripheral for Peripheral {
+    const REGISTERS: *const () = 0x50036000 as *const ();
 }
