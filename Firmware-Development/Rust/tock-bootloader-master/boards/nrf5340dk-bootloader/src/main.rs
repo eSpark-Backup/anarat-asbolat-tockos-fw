@@ -20,6 +20,7 @@ use kernel::platform::SyscallDriverLookup;
 use kernel::static_init;
 use kernel::hil::uart::Configure;
 use kernel::hil::uart;
+use kernel::utilities::cells::TakeCell;
 
 use bootloader::null_scheduler::NullScheduler;
 
@@ -199,13 +200,15 @@ unsafe fn create_peripherals() -> &'static mut Nrf5340DefaultPeripherals<'static
     nrf5340_peripherals
 }
 
-struct MyMem {
-    buffer: [u8; 64],
+pub struct MyMem<'a, F: hil::flash::Flash + 'static>  {
+    // buffer: [u8; 64],
     flash_memory: [u8; 1024],
+    flash: &'a F,
+    page_buffer: TakeCell<'static, F::Page>,
 }
 
-impl DFUMemIO for MyMem {
-    const MEM_INFO_STRING: &'static str = "@Flash/0x00000000/1*1Kg";
+impl<'a, F: hil::flash::Flash> DFUMemIO for MyMem<'a, F> {
+    const MEM_INFO_STRING: &'static str = "@Flash/0x00018000/1*1Kg";
     const INITIAL_ADDRESS_POINTER: u32 = 0x0;
     const PROGRAM_TIME_MS: u32 = 8;
     const ERASE_TIME_MS: u32 = 50;
@@ -220,7 +223,12 @@ impl DFUMemIO for MyMem {
 
     fn erase(&mut self, address: u32) -> Result<(), DFUMemError> {
         // TODO: check address value
-        self.flash_memory.fill(0xff);
+        // let page_size = self.page_buffer.len();
+        // let page_index = (address as usize) / page_size;
+        let page_size = self.page_buffer.map_or(512, |page| page.as_mut().len());
+        let _ = self.flash.erase_page(address as usize / page_size);
+        // self.flash.erase_page(page_index)
+        //     .map_err(|_| DFUMemError::Erase)
         // TODO: verify that block is erased successfully
         Ok(())
     }
@@ -231,7 +239,7 @@ impl DFUMemIO for MyMem {
     }
 
     fn store_write_buffer(&mut self, src:&[u8]) -> Result<(), ()>{
-        self.buffer[..src.len()].copy_from_slice(src);
+        // self.buffer[..src.len()].copy_from_slice(src);
         Ok(())
     }
 
@@ -240,7 +248,14 @@ impl DFUMemIO for MyMem {
         let offset = address as usize;
 
         // Write buffer to a memory
-        self.flash_memory[offset..offset+length].copy_from_slice(&self.buffer[..length]);
+        // self.flash_memory[offset..offset+length].copy_from_slice(&self.buffer[..length]);
+        // self.page_buffer.take().map(move |page| {
+        //     for i in 0..page_size {
+        //         page.as_mut()[i] = data[i];
+        //     }
+        //     // self.buffer.replace(buffer);
+        //     let _ = self.flash.write_page(address as usize / page_size, page);
+        // });
 
         // TODO: verify that memory is programmed correctly
         Ok(())
@@ -359,14 +374,6 @@ pub unsafe fn main() {
 
     let null_scheduler = static_init!(NullScheduler, NullScheduler::new());
 
-    let usbd = &nrf5340_peripherals.usbd;
-    usbd.set_power_ref(nrf_power);
-    
-    let mut my_mem = MyMem {
-        buffer: [0u8; 64],
-        flash_memory: [0u8; 1024],
-    };
-
     // let usb_bus = UsbBusAllocator::new(Usbd::new(Peripheral));
 
     // let mut serial = SerialPort::new(&usb_bus);
@@ -380,29 +387,6 @@ pub unsafe fn main() {
     //     .max_packet_size_0(64) // (makes control transfers 8x faster)
     //     .unwrap()
     //     .build();
-
-    // Create USB device for a target device:
-    let usb_bus_alloc = UsbBusAllocator::new(Usbd::new(Peripheral));
-    let mut usb_dev = UsbDeviceBuilder::new(&usb_bus_alloc, UsbVidPid(0xf055, 0xdf11))
-        .strings(&[StringDescriptors::default()
-            .manufacturer("Manufacturer")
-            .product("Product")
-            .serial_number("5340")])
-        .unwrap_or_else(|_|{panic!()})
-        .device_release(0x0200)
-        .self_powered(false)
-        .max_power(250)
-        .unwrap_or_else(|_|{panic!()})
-        .max_packet_size_0(64)
-        .unwrap_or_else(|_|{panic!()})
-        .build();
-
-    // Create DFUClass
-    let mut dfu = DFUClass::new(&usb_bus_alloc, my_mem);
-
-    loop {
-        usb_dev.poll(&mut [&mut dfu]);
-    }
 
     //--------------------------------------------------------------------------
     // BOOTLOADER
@@ -452,28 +436,80 @@ pub unsafe fn main() {
         bootloader::flash_large_to_small::FiveTwelvePage::default()
     );
 
-    let bootloader = static_init!(
-        bootloader::bootloader::Bootloader<
-            'static,
-            bootloader::uart_receive_multiple_timeout::UartReceiveMultipleTimeout<
-                'static,
-                VirtualMuxAlarm<'static, nrf5340::rtc::Rtc>,
-            >,
-            bootloader::flash_large_to_small::FlashLargeToSmall<'static, nrf53::nvmc::Nvmc>,
-        >,
-        bootloader::bootloader::Bootloader::new(
-            recv_auto_uart,
-            flash_adapter,
-            &bootloader_exit,
-            pagebuffer,
-            &mut bootloader::bootloader::BUF
-        )
-    );
+    // let bootloader = static_init!(
+    //     bootloader::bootloader::Bootloader<
+    //         'static,
+    //         bootloader::uart_receive_multiple_timeout::UartReceiveMultipleTimeout<
+    //             'static,
+    //             VirtualMuxAlarm<'static, nrf5340::rtc::Rtc>,
+    //         >,
+    //         bootloader::flash_large_to_small::FlashLargeToSmall<'static, nrf53::nvmc::Nvmc>,
+    //     >,
+    //     bootloader::bootloader::Bootloader::new(
+    //         recv_auto_uart,
+    //         flash_adapter,
+    //         &bootloader_exit,
+    //         pagebuffer,
+    //         &mut bootloader::bootloader::BUF
+    //     )
+    // );
 
-    hil::uart::Transmit::set_transmit_client(&base_peripherals.uarte0, bootloader);
-    hil::uart::Receive::set_receive_client(&base_peripherals.uarte0, recv_auto_uart);
-    hil::uart::Receive::set_receive_client(recv_auto_uart, bootloader);
-    hil::flash::HasClient::set_client(flash_adapter, bootloader);
+    // hil::uart::Transmit::set_transmit_client(&base_peripherals.uarte0, bootloader);
+    // hil::uart::Receive::set_receive_client(&base_peripherals.uarte0, recv_auto_uart);
+    // hil::uart::Receive::set_receive_client(recv_auto_uart, bootloader);
+    // hil::flash::HasClient::set_client(flash_adapter, bootloader);
+
+
+    // Create USB device for a target device:
+    let usbd = &nrf5340_peripherals.usbd;
+    usbd.set_power_ref(nrf_power);
+    
+    let my_mem = MyMem {
+        // buffer: [0u8; 64],
+        flash_memory: [0u8; 1024],
+        flash: flash_adapter,
+        page_buffer: TakeCell::new(pagebuffer),
+    };
+
+    let usb_bus_alloc = UsbBusAllocator::new(Usbd::new(Peripheral));
+
+    let mut dfu = DFUClass::new(&usb_bus_alloc, my_mem);
+
+    let strings = StringDescriptors::default()
+    .manufacturer("Ash")
+    .product("Tock")
+    .serial_number("5340");
+
+    let usb_vid_pid = UsbVidPid(0xf055, 0xdf11);
+    
+    let usb_builder = UsbDeviceBuilder::new(&usb_bus_alloc, usb_vid_pid);
+    
+    let usb_builder = usb_builder
+        .strings(&[strings])
+        .expect("Failed to set USB string descriptors");
+
+    let usb_builder = usb_builder
+        .device_release(0x0200);
+
+    let usb_builder = usb_builder
+        .self_powered(false);
+
+    let usb_builder = usb_builder
+        .max_power(250)
+        .expect("Failed to set max_power");
+
+    let usb_builder = usb_builder
+        .max_packet_size_0(64)
+        .expect("Failed to set max_packet_size_0");
+
+    let mut usb_dev = usb_builder
+        .build();
+
+    loop {
+        if usb_dev.poll(&mut [&mut dfu]) {
+            // DFUClass will handle the control transfers
+        }
+    }
 
     //--------------------------------------------------------------------------
     // FINAL SETUP AND BOARD BOOT
@@ -488,30 +524,30 @@ pub unsafe fn main() {
     while !base_peripherals.clock.low_started() {}
     while !base_peripherals.clock.high_started() {}
 
-    let platform = Platform {
-        bootloader,
-        scheduler: null_scheduler,
-    };
+    // let platform = Platform {
+    //     bootloader,
+    //     scheduler: null_scheduler,
+    // };
 
-    let chip = static_init!(
-        nrf5340::chip::NRF53<Nrf5340DefaultPeripherals>,
-        nrf5340::chip::NRF53::new(nrf5340_peripherals)
-    );
-    CHIP = Some(chip);
+    // let chip = static_init!(
+    //     nrf5340::chip::NRF53<Nrf5340DefaultPeripherals>,
+    //     nrf5340::chip::NRF53::new(nrf5340_peripherals)
+    // );
+    // CHIP = Some(chip);
 
-    // Actually run the bootloader.
-    platform.bootloader.start();
+    // // Actually run the bootloader.
+    // platform.bootloader.start();
 
-    //--------------------------------------------------------------------------
-    // MAIN LOOP
-    //--------------------------------------------------------------------------
+    // //--------------------------------------------------------------------------
+    // // MAIN LOOP
+    // //--------------------------------------------------------------------------
 
-    board_kernel.kernel_loop(
-        &platform,
-        chip,
-        None::<&kernel::ipc::IPC<0>>,
-        &main_loop_capability,
-    );
+    // board_kernel.kernel_loop(
+    //     &platform,
+    //     chip,
+    //     None::<&kernel::ipc::IPC<0>>,
+    //     &main_loop_capability,
+    // );
 }
 
 #[cfg(not(test))]
