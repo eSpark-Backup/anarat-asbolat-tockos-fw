@@ -320,7 +320,7 @@ impl Nvmc {
         }
 
         // Hold on to the buffer for the callback.
-        self.buffer.replace(buffer);
+        // self.buffer.replace(buffer);
 
         // Mark the need for an interrupt so we can call the read done
         // callback.
