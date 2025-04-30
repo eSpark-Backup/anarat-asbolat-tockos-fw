@@ -126,7 +126,7 @@ impl<'a, F: hil::flash::Flash> hil::nonvolatile_storage::NonvolatileStorage<'a>
                 self.buffer_index.set(0);
 
                 match self.driver.read_page(address / page_size, pagebuffer) {
-                    Ok(()) => Ok(()),
+                    Ok(buffer) => Ok(()),
                     Err((error_code, pagebuffer)) => {
                         self.pagebuffer.replace(pagebuffer);
                         Err(error_code)
@@ -180,7 +180,7 @@ impl<'a, F: hil::flash::Flash> hil::nonvolatile_storage::NonvolatileStorage<'a>
                     self.buffer_index.set(0);
 
                     match self.driver.read_page(address / page_size, pagebuffer) {
-                        Ok(()) => Ok(()),
+                        Ok(buffer) => Ok(()),
                         Err((error_code, pagebuffer)) => {
                             self.pagebuffer.replace(pagebuffer);
                             Err(error_code)

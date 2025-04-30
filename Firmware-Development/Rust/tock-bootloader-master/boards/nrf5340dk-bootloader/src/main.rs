@@ -209,7 +209,7 @@ pub struct MyMem<'a, F: hil::flash::Flash + 'static>  {
     temp_read_buffer: [u8; 128],
 }
 
-const temp_buffer: [u8; 128] = [0u8; 128];
+static mut TEMP_BUFFER: [u8; 512] = [0u8; 512];
 
 impl<'a, F: hil::flash::Flash> DFUMemIO for MyMem<'a, F> {
     const MEM_INFO_STRING: &'static str = "@Flash/0x00018000/256*4Ka";
@@ -222,21 +222,24 @@ impl<'a, F: hil::flash::Flash> DFUMemIO for MyMem<'a, F> {
     fn read(&mut self, address: u32, length: usize) -> Result<&[u8], DFUMemError> {
         // TODO: check address value
         let offset = address as usize;
+        let offset_within_page = offset % 512;
+        let end = offset_within_page + length;
         let offset_bytes = (offset as u32).to_le_bytes(); // or to_be_bytes() for big-endian
-        // self.temp_read_buffer[0..4].copy_from_slice(&offset_bytes);
+        unsafe {
+        // TEMP_BUFFER[0..4].copy_from_slice(&offset_bytes);
         self.page_buffer.take().map(move |page| {
             // let pageB = page.index();
             let page_size = page.as_mut().len();
-            let _ = self.flash.read_page(address as usize / page_size, page);
-            // temp_buffer[..length].copy_from_slice(&page.as_ref()[..length]);
-
-
-            // for i in 0..page_size {
-            //     temp_buffer[i] = page.index()[i];
-            // }
+            let mut page_number = address as usize / page_size;
+            let result = self.flash.read_page(page_number, page);
+            result.map(|buffer| {
+                TEMP_BUFFER[..page_size].copy_from_slice(&buffer.as_ref()[..page_size]);
+                self.page_buffer.replace(buffer);
+            });
         });
 
-        Ok(&temp_buffer[..length])
+        Ok(&TEMP_BUFFER[offset_within_page..end])
+        }
     }
     
 

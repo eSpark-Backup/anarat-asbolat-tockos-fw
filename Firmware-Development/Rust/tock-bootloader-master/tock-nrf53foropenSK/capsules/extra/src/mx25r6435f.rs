@@ -298,7 +298,7 @@ impl<
         &self,
         sector_index: u32,
         sector: &'static mut Mx25r6435fSector,
-    ) -> Result<(), (ErrorCode, &'static mut Mx25r6435fSector)> {
+    ) -> Result<&'static mut Mx25r6435fSector, (ErrorCode, &'static mut Mx25r6435fSector)> {
         match self.configure_spi() {
             Ok(()) => {
                 let retval =
@@ -339,8 +339,8 @@ impl<
 
                 match retval {
                     Ok(()) => {
-                        self.client_sector.replace(sector);
-                        Ok(())
+                        // self.client_sector.replace(sector);
+                        Ok(sector)
                     }
                     Err(ecode) => Err((ecode, sector)),
                 }
@@ -654,7 +654,7 @@ impl<
         &self,
         page_number: usize,
         buf: &'static mut Self::Page,
-    ) -> Result<(), (ErrorCode, &'static mut Self::Page)> {
+    ) -> Result<&'static mut Self::Page, (ErrorCode, &'static mut Self::Page)> {
         self.read_sector(page_number as u32, buf)
     }
 

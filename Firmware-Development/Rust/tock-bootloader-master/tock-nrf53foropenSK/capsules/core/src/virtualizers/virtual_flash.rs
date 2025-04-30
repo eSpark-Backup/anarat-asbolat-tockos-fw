@@ -218,11 +218,11 @@ impl<F: hil::flash::Flash> hil::flash::Flash for FlashUser<'_, F> {
         &self,
         page_number: usize,
         buf: &'static mut Self::Page,
-    ) -> Result<(), (ErrorCode, &'static mut Self::Page)> {
-        self.buffer.replace(buf);
+    ) -> Result<&'static mut Self::Page, (ErrorCode, &'static mut Self::Page)> {
+        // self.buffer.replace(buf);
         self.operation.set(Op::Read(page_number));
         self.mux.do_next_op();
-        Ok(())
+        Ok(buf)
     }
 
     fn write_page(

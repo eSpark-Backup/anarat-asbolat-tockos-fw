@@ -309,7 +309,7 @@ impl Nvmc {
         &self,
         page_number: usize,
         buffer: &'static mut NrfPage,
-    ) -> Result<(), (ErrorCode, &'static mut NrfPage)> {
+    ) -> Result<&'static mut NrfPage, (ErrorCode, &'static mut NrfPage)> {
         // Actually do a copy from flash into the buffer.
         let mut byte: *const u8 = (page_number * PAGE_SIZE) as *const u8;
         unsafe {
@@ -320,14 +320,14 @@ impl Nvmc {
         }
 
         // Hold on to the buffer for the callback.
-        self.buffer.replace(buffer);
+        // self.buffer.replace(buffer);
 
         // Mark the need for an interrupt so we can call the read done
         // callback.
         self.state.set(FlashState::Read);
         self.deferred_call.set();
 
-        Ok(())
+        Ok(buffer)
     }
 
     fn write_page(
@@ -394,7 +394,7 @@ impl hil::flash::Flash for Nvmc {
         &self,
         page_number: usize,
         buf: &'static mut Self::Page,
-    ) -> Result<(), (ErrorCode, &'static mut Self::Page)> {
+    ) -> Result<&'static mut Self::Page, (ErrorCode, &'static mut Self::Page)> {
         self.read_range(page_number, buf)
     }
 

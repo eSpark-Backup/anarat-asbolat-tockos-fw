@@ -123,7 +123,7 @@ pub trait Flash {
         &self,
         page_number: usize,
         buf: &'static mut Self::Page,
-    ) -> Result<(), (ErrorCode, &'static mut Self::Page)>;
+    ) -> Result<&'static mut Self::Page, (ErrorCode, &'static mut Self::Page)>;
 
     /// Write a page of flash from the buffer.
     fn write_page(
