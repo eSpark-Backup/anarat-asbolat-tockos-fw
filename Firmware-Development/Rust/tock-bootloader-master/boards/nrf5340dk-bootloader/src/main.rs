@@ -22,6 +22,8 @@ use kernel::hil::uart::Configure;
 use kernel::hil::uart;
 use kernel::utilities::cells::TakeCell;
 
+use core::ops::Index;
+
 use bootloader::null_scheduler::NullScheduler;
 
 use capsules_core::virtualizers::virtual_alarm::VirtualMuxAlarm;
@@ -116,7 +118,7 @@ static mut CHIP: Option<&'static nrf5340::chip::NRF53<Nrf5340DefaultPeripherals>
 /// Dummy buffer that causes the linker to reserve enough space for the stack.
 #[no_mangle]
 #[link_section = ".stack_buffer"]
-pub static mut STACK_MEMORY: [u8; 0x8000] = [0; 0x8000];
+pub static mut STACK_MEMORY: [u8; 0x10000] = [0; 0x10000];
 
 /// Function to allow the bootloader to exit by reseting the chip.
 fn bootloader_exit() {
@@ -201,25 +203,42 @@ unsafe fn create_peripherals() -> &'static mut Nrf5340DefaultPeripherals<'static
 }
 
 pub struct MyMem<'a, F: hil::flash::Flash + 'static>  {
-    // buffer: [u8; 64],
-    flash_memory: [u8; 1024],
+    buffer: [u8; 128],
     flash: &'a F,
     page_buffer: TakeCell<'static, F::Page>,
+    temp_read_buffer: [u8; 128],
 }
 
+const temp_buffer: [u8; 128] = [0u8; 128];
+
 impl<'a, F: hil::flash::Flash> DFUMemIO for MyMem<'a, F> {
-    const MEM_INFO_STRING: &'static str = "@Flash/0x00018000/1*1Kg";
+    const MEM_INFO_STRING: &'static str = "@Flash/0x00018000/256*4Ka";
     const INITIAL_ADDRESS_POINTER: u32 = 0x0;
     const PROGRAM_TIME_MS: u32 = 8;
     const ERASE_TIME_MS: u32 = 50;
     const FULL_ERASE_TIME_MS: u32 = 50;
-    const TRANSFER_SIZE: u16 = 64;
+    const TRANSFER_SIZE: u16 = 128;
 
     fn read(&mut self, address: u32, length: usize) -> Result<&[u8], DFUMemError> {
         // TODO: check address value
         let offset = address as usize;
-        Ok(&self.flash_memory[offset..offset+length])
+        let offset_bytes = (offset as u32).to_le_bytes(); // or to_be_bytes() for big-endian
+        // self.temp_read_buffer[0..4].copy_from_slice(&offset_bytes);
+        self.page_buffer.take().map(move |page| {
+            // let pageB = page.index();
+            let page_size = page.as_mut().len();
+            let _ = self.flash.read_page(address as usize / page_size, page);
+            // temp_buffer[..length].copy_from_slice(&page.as_ref()[..length]);
+
+
+            // for i in 0..page_size {
+            //     temp_buffer[i] = page.index()[i];
+            // }
+        });
+
+        Ok(&temp_buffer[..length])
     }
+    
 
     fn erase(&mut self, address: u32) -> Result<(), DFUMemError> {
         // TODO: check address value
@@ -239,30 +258,41 @@ impl<'a, F: hil::flash::Flash> DFUMemIO for MyMem<'a, F> {
     }
 
     fn store_write_buffer(&mut self, src:&[u8]) -> Result<(), ()>{
-        // self.buffer[..src.len()].copy_from_slice(src);
+        self.buffer[..src.len()].copy_from_slice(src);
         Ok(())
     }
 
-    fn program(&mut self, address: u32, length: usize) -> Result<(), DFUMemError>{
-        // TODO: check address value
-        let offset = address as usize;
-
-        // Write buffer to a memory
-        // self.flash_memory[offset..offset+length].copy_from_slice(&self.buffer[..length]);
-        // self.page_buffer.take().map(move |page| {
-        //     for i in 0..page_size {
-        //         page.as_mut()[i] = data[i];
-        //     }
-        //     // self.buffer.replace(buffer);
-        //     let _ = self.flash.write_page(address as usize / page_size, page);
-        // });
-
-        // TODO: verify that memory is programmed correctly
-        Ok(())
+    fn program(&mut self, address: u32, length: usize) -> Result<(), DFUMemError> {
+  
+        // Attempt to take the page buffer
+        let result = self.page_buffer.take().map_or_else(
+            || Err(DFUMemError::Write), // No page buffer available
+            |page| {
+                let page_size = page.as_mut().len();
+    
+                // if length > page_size {
+                //     return Err(DFUMemError::Prog); // Too much data
+                // }
+    
+                // Copy data from self.buffer to the page
+                page.as_mut()[..length].copy_from_slice(&self.buffer[..length]);
+    
+                // Calculate page number
+                let page_num = address as usize / page_size;
+    
+                // Attempt to write to flash
+                let _ =  self.flash.write_page(page_num, page);
+                Ok(())
+            }
+        );
+    
+        result
     }
+    
 
     fn manifestation(&mut self) -> Result<(), DFUManifestationError> {
         // Nothing to do to activate FW
+        bootloader_exit();
         Ok(())
     }
 }
@@ -436,39 +466,44 @@ pub unsafe fn main() {
         bootloader::flash_large_to_small::FiveTwelvePage::default()
     );
 
-    // let bootloader = static_init!(
-    //     bootloader::bootloader::Bootloader<
-    //         'static,
-    //         bootloader::uart_receive_multiple_timeout::UartReceiveMultipleTimeout<
-    //             'static,
-    //             VirtualMuxAlarm<'static, nrf5340::rtc::Rtc>,
-    //         >,
-    //         bootloader::flash_large_to_small::FlashLargeToSmall<'static, nrf53::nvmc::Nvmc>,
-    //     >,
-    //     bootloader::bootloader::Bootloader::new(
-    //         recv_auto_uart,
-    //         flash_adapter,
-    //         &bootloader_exit,
-    //         pagebuffer,
-    //         &mut bootloader::bootloader::BUF
-    //     )
-    // );
+    let bootloader = static_init!(
+        bootloader::bootloader::Bootloader<
+            'static,
+            bootloader::uart_receive_multiple_timeout::UartReceiveMultipleTimeout<
+                'static,
+                VirtualMuxAlarm<'static, nrf5340::rtc::Rtc>,
+            >,
+            bootloader::flash_large_to_small::FlashLargeToSmall<'static, nrf53::nvmc::Nvmc>,
+        >,
+        bootloader::bootloader::Bootloader::new(
+            recv_auto_uart,
+            flash_adapter,
+            &bootloader_exit,
+            pagebuffer,
+            &mut bootloader::bootloader::BUF
+        )
+    );
 
     // hil::uart::Transmit::set_transmit_client(&base_peripherals.uarte0, bootloader);
     // hil::uart::Receive::set_receive_client(&base_peripherals.uarte0, recv_auto_uart);
     // hil::uart::Receive::set_receive_client(recv_auto_uart, bootloader);
-    // hil::flash::HasClient::set_client(flash_adapter, bootloader);
+    hil::flash::HasClient::set_client(flash_adapter, bootloader);
 
 
     // Create USB device for a target device:
     let usbd = &nrf5340_peripherals.usbd;
     usbd.set_power_ref(nrf_power);
     
+    let pagebuffer2 = static_init!(
+        bootloader::flash_large_to_small::FiveTwelvePage,
+        bootloader::flash_large_to_small::FiveTwelvePage::default()
+    );
+
     let my_mem = MyMem {
-        // buffer: [0u8; 64],
-        flash_memory: [0u8; 1024],
+        buffer: [0u8; 128],
         flash: flash_adapter,
-        page_buffer: TakeCell::new(pagebuffer),
+        page_buffer: TakeCell::new(pagebuffer2),
+        temp_read_buffer: [0u8; 128],
     };
 
     let usb_bus_alloc = UsbBusAllocator::new(Usbd::new(Peripheral));
@@ -480,7 +515,7 @@ pub unsafe fn main() {
     .product("Tock")
     .serial_number("5340");
 
-    let usb_vid_pid = UsbVidPid(0xf055, 0xdf11);
+    let usb_vid_pid = UsbVidPid(0x0483, 0xdf11);
     
     let usb_builder = UsbDeviceBuilder::new(&usb_bus_alloc, usb_vid_pid);
     

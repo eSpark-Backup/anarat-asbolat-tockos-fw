@@ -44,6 +44,7 @@
 
 use core::cell::Cell;
 use core::cmp;
+use core::ops::Index;
 
 use kernel::hil::i2c::{Error, I2CClient, I2CDevice};
 use kernel::utilities::cells::{OptionalCell, TakeCell};
@@ -62,6 +63,20 @@ impl Default for EEPROMPage {
 impl AsMut<[u8]> for EEPROMPage {
     fn as_mut(&mut self) -> &mut [u8] {
         &mut self.0
+    }
+}
+
+impl Index<usize> for EEPROMPage {
+    type Output = u8;
+
+    fn index(&self, idx: usize) -> &u8 {
+        &self.0[idx]
+    }
+}
+
+impl AsRef<[u8]> for EEPROMPage {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
     }
 }
 

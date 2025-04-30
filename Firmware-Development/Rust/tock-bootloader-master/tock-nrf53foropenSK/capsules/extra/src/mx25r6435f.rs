@@ -116,6 +116,12 @@ impl AsMut<[u8]> for Mx25r6435fSector {
     }
 }
 
+impl AsRef<[u8]> for Mx25r6435fSector {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
 #[allow(dead_code)]
 enum Opcodes {
     WREN = 0x06, // Write Enable
