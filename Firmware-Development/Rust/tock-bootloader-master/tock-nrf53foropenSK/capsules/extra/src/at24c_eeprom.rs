@@ -136,7 +136,7 @@ impl<'a> AT24C<'a> {
         &self,
         page_number: usize,
         buf: &'static mut EEPROMPage,
-    ) -> Result<(), (ErrorCode, &'static mut EEPROMPage)> {
+    ) -> Result<&'static mut EEPROMPage, (ErrorCode, &'static mut EEPROMPage)> {
         let address = page_number * PAGE_SIZE;
         // Schedule page write and do first
         if let Some(txbuffer) = self.buffer.take() {
@@ -154,8 +154,8 @@ impl<'a> AT24C<'a> {
                 self.i2c.disable();
                 Err((error.into(), buf))
             } else {
-                self.client_page.replace(buf);
-                Ok(())
+                // self.client_page.replace(buf);
+                Ok(buf)
             }
         } else {
             Err((ErrorCode::RESERVE, buf))
@@ -254,7 +254,7 @@ impl hil::flash::Flash for AT24C<'_> {
         &self,
         page_number: usize,
         buf: &'static mut Self::Page,
-    ) -> Result<(), (ErrorCode, &'static mut Self::Page)> {
+    ) -> Result<&'static mut Self::Page, (ErrorCode, &'static mut Self::Page)> {
         self.write_sector(page_number, buf)
     }
 

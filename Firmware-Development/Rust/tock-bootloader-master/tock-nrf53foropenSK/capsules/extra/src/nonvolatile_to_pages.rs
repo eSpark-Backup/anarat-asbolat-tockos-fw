@@ -166,7 +166,7 @@ impl<'a, F: hil::flash::Flash> hil::nonvolatile_storage::NonvolatileStorage<'a>
                     self.buffer_index.set(page_size);
 
                     match self.driver.write_page(address / page_size, pagebuffer) {
-                        Ok(()) => Ok(()),
+                        Ok(buffer) => Ok(()),
                         Err((error_code, pagebuffer)) => {
                             self.pagebuffer.replace(pagebuffer);
                             Err(error_code)

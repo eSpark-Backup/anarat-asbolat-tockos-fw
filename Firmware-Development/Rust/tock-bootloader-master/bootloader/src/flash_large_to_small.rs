@@ -156,7 +156,7 @@ impl<'a, Flarge: hil::flash::Flash> hil::flash::Flash for FlashLargeToSmall<'a, 
         &self,
         page_number: usize,
         buf: &'static mut Self::Page,
-    ) -> Result<(), (ErrorCode, &'static mut Self::Page)> {
+    ) -> Result<&'static mut Self::Page, (ErrorCode, &'static mut Self::Page)> {
         // Translate to the large page we need to read.
         let (index, _) = self.get_large_page_index_offset(page_number);
 
@@ -168,11 +168,30 @@ impl<'a, Flarge: hil::flash::Flash> hil::flash::Flash for FlashLargeToSmall<'a, 
             || Err((ErrorCode::FAIL, self.client_pagebuffer.take().unwrap())),
             |page| {
                 self.state.set(State::Write { page_number });
-                self.flash_large.read_page(index, page).map_err(|e| {
-                    self.pagebuffer.replace(e.1);
-                    (ErrorCode::FAIL, self.client_pagebuffer.take().unwrap())
-                });
-                Ok(())
+                match self.flash_large.read_page(index, page) {
+                    Err((e, buffer)) => {
+                        self.pagebuffer.replace(buffer);
+                        Err((ErrorCode::FAIL, self.client_pagebuffer.take().unwrap()))
+                    }
+                    Ok(buffer) => {
+                        let (_, large_page_offset) = self.get_large_page_index_offset(page_number);
+                        let large_page_byte_offset = 512 * large_page_offset;
+                        
+
+                        match self.client_pagebuffer.take() {
+                            Some(mut smpage) => {
+                                for i in 0..512 {
+                                    smpage[i] = buffer.as_mut()[large_page_byte_offset + i];
+                                }
+                        
+                                self.pagebuffer.replace(buffer);
+                        
+                                Ok(smpage)
+                            }
+                            None => Err((ErrorCode::FAIL, self.client_pagebuffer.take().unwrap())),
+                        }
+                    }
+                }
             },
         )
     }

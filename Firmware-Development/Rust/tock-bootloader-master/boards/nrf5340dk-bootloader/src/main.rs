@@ -206,15 +206,15 @@ pub struct MyMem<'a, F: hil::flash::Flash + 'static>  {
     buffer: [u8; 128],
     flash: &'a F,
     page_buffer: TakeCell<'static, F::Page>,
-    temp_read_buffer: [u8; 128],
 }
 
 static mut TEMP_BUFFER: [u8; 512] = [0u8; 512];
+static mut count: u8 = 0;
 
 impl<'a, F: hil::flash::Flash> DFUMemIO for MyMem<'a, F> {
-    const MEM_INFO_STRING: &'static str = "@Flash/0x00018000/256*4Ka";
-    const INITIAL_ADDRESS_POINTER: u32 = 0x0;
-    const PROGRAM_TIME_MS: u32 = 8;
+    const MEM_INFO_STRING: &'static str = "@Flash/0x00018000/256*4Kg";
+    const INITIAL_ADDRESS_POINTER: u32 = 0x18000;
+    const PROGRAM_TIME_MS: u32 = 50;
     const ERASE_TIME_MS: u32 = 50;
     const FULL_ERASE_TIME_MS: u32 = 50;
     const TRANSFER_SIZE: u16 = 128;
@@ -224,7 +224,7 @@ impl<'a, F: hil::flash::Flash> DFUMemIO for MyMem<'a, F> {
         let offset = address as usize;
         let offset_within_page = offset % 512;
         let end = offset_within_page + length;
-        let offset_bytes = (offset as u32).to_le_bytes(); // or to_be_bytes() for big-endian
+        // let offset_bytes = (offset as u32).to_le_bytes(); // or to_be_bytes() for big-endian
         unsafe {
         // TEMP_BUFFER[0..4].copy_from_slice(&offset_bytes);
         self.page_buffer.take().map(move |page| {
@@ -244,20 +244,16 @@ impl<'a, F: hil::flash::Flash> DFUMemIO for MyMem<'a, F> {
     
 
     fn erase(&mut self, address: u32) -> Result<(), DFUMemError> {
-        // TODO: check address value
-        // let page_size = self.page_buffer.len();
+        // let page_size = self.page_buffer.map_or(512, |page| page.as_mut().len());
         // let page_index = (address as usize) / page_size;
-        let page_size = self.page_buffer.map_or(512, |page| page.as_mut().len());
-        let _ = self.flash.erase_page(address as usize / page_size);
-        // self.flash.erase_page(page_index)
-        //     .map_err(|_| DFUMemError::Erase)
-        // TODO: verify that block is erased successfully
+        // let result = self.flash.erase_page(page_index).map_err(|_| DFUMemError::Erase);
+        // result
         Ok(())
     }
 
     fn erase_all(&mut self) -> Result<(), DFUMemError> {
         // There is only one block, erase it.
-        self.erase(0)
+        Err(DFUMemError::Unknown)
     }
 
     fn store_write_buffer(&mut self, src:&[u8]) -> Result<(), ()>{
@@ -266,16 +262,15 @@ impl<'a, F: hil::flash::Flash> DFUMemIO for MyMem<'a, F> {
     }
 
     fn program(&mut self, address: u32, length: usize) -> Result<(), DFUMemError> {
-  
         // Attempt to take the page buffer
         let result = self.page_buffer.take().map_or_else(
             || Err(DFUMemError::Write), // No page buffer available
             |page| {
                 let page_size = page.as_mut().len();
-    
-                // if length > page_size {
-                //     return Err(DFUMemError::Prog); // Too much data
-                // }
+
+                if length > page_size {
+                    return Err(DFUMemError::Prog); // Too much data
+                }
     
                 // Copy data from self.buffer to the page
                 page.as_mut()[..length].copy_from_slice(&self.buffer[..length]);
@@ -284,8 +279,12 @@ impl<'a, F: hil::flash::Flash> DFUMemIO for MyMem<'a, F> {
                 let page_num = address as usize / page_size;
     
                 // Attempt to write to flash
-                let _ =  self.flash.write_page(page_num, page);
-                Ok(())
+                let result =  self.flash.write_page(page_num, page);
+                result.map_or(Err(DFUMemError::Write), |buffer| {
+                    self.page_buffer.replace(buffer);
+                    Ok(())
+                })
+                
             }
         );
     
@@ -487,9 +486,9 @@ pub unsafe fn main() {
         )
     );
 
-    // hil::uart::Transmit::set_transmit_client(&base_peripherals.uarte0, bootloader);
-    // hil::uart::Receive::set_receive_client(&base_peripherals.uarte0, recv_auto_uart);
-    // hil::uart::Receive::set_receive_client(recv_auto_uart, bootloader);
+    hil::uart::Transmit::set_transmit_client(&base_peripherals.uarte0, bootloader);
+    hil::uart::Receive::set_receive_client(&base_peripherals.uarte0, recv_auto_uart);
+    hil::uart::Receive::set_receive_client(recv_auto_uart, bootloader);
     hil::flash::HasClient::set_client(flash_adapter, bootloader);
 
 
@@ -501,53 +500,52 @@ pub unsafe fn main() {
         bootloader::flash_large_to_small::FiveTwelvePage,
         bootloader::flash_large_to_small::FiveTwelvePage::default()
     );
+ 
+    // let my_mem = MyMem {
+    //     buffer: [0u8; 128],
+    //     flash: flash_adapter,
+    //     page_buffer: TakeCell::new(pagebuffer2),
+    // };
 
-    let my_mem = MyMem {
-        buffer: [0u8; 128],
-        flash: flash_adapter,
-        page_buffer: TakeCell::new(pagebuffer2),
-        temp_read_buffer: [0u8; 128],
-    };
+    // let usb_bus_alloc = UsbBusAllocator::new(Usbd::new(Peripheral));
 
-    let usb_bus_alloc = UsbBusAllocator::new(Usbd::new(Peripheral));
+    // let mut dfu = DFUClass::new(&usb_bus_alloc, my_mem);
 
-    let mut dfu = DFUClass::new(&usb_bus_alloc, my_mem);
+    // let strings = StringDescriptors::default()
+    // .manufacturer("Ash")
+    // .product("Tock")
+    // .serial_number("5340");
 
-    let strings = StringDescriptors::default()
-    .manufacturer("Ash")
-    .product("Tock")
-    .serial_number("5340");
-
-    let usb_vid_pid = UsbVidPid(0x0483, 0xdf11);
+    // let usb_vid_pid = UsbVidPid(0x0483, 0xdf11);
     
-    let usb_builder = UsbDeviceBuilder::new(&usb_bus_alloc, usb_vid_pid);
+    // let usb_builder = UsbDeviceBuilder::new(&usb_bus_alloc, usb_vid_pid);
     
-    let usb_builder = usb_builder
-        .strings(&[strings])
-        .expect("Failed to set USB string descriptors");
+    // let usb_builder = usb_builder
+    //     .strings(&[strings])
+    //     .expect("Failed to set USB string descriptors");
 
-    let usb_builder = usb_builder
-        .device_release(0x0200);
+    // let usb_builder = usb_builder
+    //     .device_release(0x0200);
 
-    let usb_builder = usb_builder
-        .self_powered(false);
+    // let usb_builder = usb_builder
+    //     .self_powered(false);
 
-    let usb_builder = usb_builder
-        .max_power(250)
-        .expect("Failed to set max_power");
+    // let usb_builder = usb_builder
+    //     .max_power(250)
+    //     .expect("Failed to set max_power");
 
-    let usb_builder = usb_builder
-        .max_packet_size_0(64)
-        .expect("Failed to set max_packet_size_0");
+    // let usb_builder = usb_builder
+    //     .max_packet_size_0(64)
+    //     .expect("Failed to set max_packet_size_0");
 
-    let mut usb_dev = usb_builder
-        .build();
+    // let mut usb_dev = usb_builder
+    //     .build();
 
-    loop {
-        if usb_dev.poll(&mut [&mut dfu]) {
-            // DFUClass will handle the control transfers
-        }
-    }
+    // loop {
+    //     if usb_dev.poll(&mut [&mut dfu]) {
+    //         // DFUClass will handle the control transfers
+    //     }
+    // }
 
     //--------------------------------------------------------------------------
     // FINAL SETUP AND BOARD BOOT
@@ -562,30 +560,30 @@ pub unsafe fn main() {
     while !base_peripherals.clock.low_started() {}
     while !base_peripherals.clock.high_started() {}
 
-    // let platform = Platform {
-    //     bootloader,
-    //     scheduler: null_scheduler,
-    // };
+    let platform = Platform {
+        bootloader,
+        scheduler: null_scheduler,
+    };
 
-    // let chip = static_init!(
-    //     nrf5340::chip::NRF53<Nrf5340DefaultPeripherals>,
-    //     nrf5340::chip::NRF53::new(nrf5340_peripherals)
-    // );
-    // CHIP = Some(chip);
+    let chip = static_init!(
+        nrf5340::chip::NRF53<Nrf5340DefaultPeripherals>,
+        nrf5340::chip::NRF53::new(nrf5340_peripherals)
+    );
+    CHIP = Some(chip);
 
-    // // Actually run the bootloader.
-    // platform.bootloader.start();
+    // Actually run the bootloader.
+    platform.bootloader.start();
 
-    // //--------------------------------------------------------------------------
-    // // MAIN LOOP
-    // //--------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
+    // MAIN LOOP
+    //--------------------------------------------------------------------------
 
-    // board_kernel.kernel_loop(
-    //     &platform,
-    //     chip,
-    //     None::<&kernel::ipc::IPC<0>>,
-    //     &main_loop_capability,
-    // );
+    board_kernel.kernel_loop(
+        &platform,
+        chip,
+        None::<&kernel::ipc::IPC<0>>,
+        &main_loop_capability,
+    );
 }
 
 #[cfg(not(test))]

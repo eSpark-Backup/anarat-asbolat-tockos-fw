@@ -334,7 +334,7 @@ impl Nvmc {
         &self,
         page_number: usize,
         data: &'static mut NrfPage,
-    ) -> Result<(), (ErrorCode, &'static mut NrfPage)> {
+    ) -> Result<&'static mut NrfPage, (ErrorCode, &'static mut NrfPage)> {
         // Need to erase the page first.
         // self.erase_page_helper(page_number);
 
@@ -358,14 +358,14 @@ impl Nvmc {
         while !self.registers.ready.is_set(Ready::READY) {}
 
         // Save the buffer so we can return it with the callback.
-        self.buffer.replace(data);
+        // self.buffer.replace(data);
 
         // Mark the need for an interrupt so we can call the write done
         // callback.
         self.state.set(FlashState::Write);
         self.deferred_call.set();
 
-        Ok(())
+        Ok(data)
     }
 
     // fn erase_page(&self, page_number: usize) -> Result<(), ErrorCode> {
@@ -402,7 +402,7 @@ impl hil::flash::Flash for Nvmc {
         &self,
         page_number: usize,
         buf: &'static mut Self::Page,
-    ) -> Result<(), (ErrorCode, &'static mut Self::Page)> {
+    ) -> Result<&'static mut Self::Page, (ErrorCode, &'static mut Self::Page)> {
         self.write_page(page_number, buf)
     }
 

@@ -461,7 +461,7 @@ impl<'a, F: Flash + 'static> Log<'a, F> {
 
         // Sync page to flash.
         match self.driver.write_page(page_number, pagebuffer) {
-            Ok(()) => Ok(()),
+            Ok(buffer) => Ok(()),
             Err((ecode, pagebuffer)) => {
                 self.pagebuffer.replace(pagebuffer);
                 Err(ecode)
