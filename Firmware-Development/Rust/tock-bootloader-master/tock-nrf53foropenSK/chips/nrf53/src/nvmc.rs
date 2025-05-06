@@ -205,6 +205,12 @@ impl AsMut<[u8]> for NrfPage {
     }
 }
 
+impl AsRef<[u8]> for NrfPage {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
 /// FlashState is used to track the current state and command of the flash.
 #[derive(Clone, Copy, PartialEq)]
 pub enum FlashState {

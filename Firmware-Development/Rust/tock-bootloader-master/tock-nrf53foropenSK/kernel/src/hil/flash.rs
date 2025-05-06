@@ -115,7 +115,7 @@ pub trait HasClient<'a, C> {
 /// A page of writable persistent flash memory.
 pub trait Flash {
     /// Type of a single flash page for the given implementation.
-    type Page: AsMut<[u8]> + Default;
+    type Page: AsMut<[u8]> + AsRef<[u8]> + Default;
 
     /// Read a page of flash into the buffer.
     fn read_page(

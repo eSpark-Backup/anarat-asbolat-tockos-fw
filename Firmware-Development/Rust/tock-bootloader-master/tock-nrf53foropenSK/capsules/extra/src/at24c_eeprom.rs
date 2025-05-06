@@ -65,6 +65,12 @@ impl AsMut<[u8]> for EEPROMPage {
     }
 }
 
+impl AsRef<[u8]> for EEPROMPage {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 enum State {
     Idle,

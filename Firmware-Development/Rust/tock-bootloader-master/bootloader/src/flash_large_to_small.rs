@@ -40,6 +40,12 @@ impl AsMut<[u8]> for FiveTwelvePage {
     }
 }
 
+impl AsRef<[u8]> for FiveTwelvePage {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
 /// This module is either waiting to do something, or handling a read/write.
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum State {

@@ -24,11 +24,15 @@ nrf53 = { path = "../../tock-nrf53foropenSK/chips/nrf53" }
 nrf5340 = { path = "../../tock-nrf53foropenSK/chips/nrf5340" }
 components = { path = "../../tock-nrf53foropenSK/boards/components" }
 nrf53_components = { path = "../../tock-nrf53foropenSK/boards/nordic/nrf53_components" }
+cortex-m = {version = "0.7.7", features = ["critical-section-single-core"] }
 
 bootloader = { path = "../../bootloader" }
 bootloader_nrf53 = { path = "../../chips/bootloader_nrf53" }
 bootloader_cortexm = { path = "../../arch/bootloader_cortexm" }
 
+usbd-dfu = "=0.4.0"
+usb-device = "0.3.2"
+nrf-usbd = "=0.3.0"
 
 [build-dependencies]
 bootloader_attributes = { path = "../../tools/bootloader_attributes" }

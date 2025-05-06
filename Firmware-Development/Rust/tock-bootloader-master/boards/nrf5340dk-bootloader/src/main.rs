@@ -7,6 +7,8 @@
 // https://github.com/rust-lang/rust/issues/62184.
 #![cfg_attr(not(doc), no_main)]
 
+mod usb_dfu_app;
+
 use core::panic::PanicInfo;
 
 use kernel::capabilities;
@@ -19,6 +21,7 @@ use kernel::platform::KernelResources;
 use kernel::platform::SyscallDriverLookup;
 use kernel::static_init;
 use kernel::hil::uart::Configure;
+use kernel::utilities::cells::TakeCell;
 use kernel::hil::uart;
 
 use bootloader::null_scheduler::NullScheduler;
@@ -27,6 +30,14 @@ use capsules_core::virtualizers::virtual_alarm::VirtualMuxAlarm;
 
 use nrf5340::gpio::Pin;
 use nrf5340::interrupt_service::Nrf5340DefaultPeripherals;
+
+use usbd_dfu::*;
+use usb_device::{bus::UsbBusAllocator, prelude::*};
+use usb_device::device::{StringDescriptors, UsbDeviceBuilder, UsbVidPid};
+use usb_dfu_app::*;
+use nrf_usbd::{UsbPeripheral, Usbd};
+
+use cortex_m::interrupt::{free as interrupt_free, Mutex};
 
 const UART_TXD: Pin = Pin::P0_06;
 const UART_RXD: Pin = Pin::P0_08;
@@ -380,8 +391,19 @@ pub unsafe fn main() {
     hil::uart::Transmit::set_transmit_client(&base_peripherals.uarte0, bootloader);
     hil::uart::Receive::set_receive_client(&base_peripherals.uarte0, recv_auto_uart);
     hil::uart::Receive::set_receive_client(recv_auto_uart, bootloader);
-    hil::flash::HasClient::set_client(flash_adapter, bootloader);
+    // hil::flash::HasClient::set_client(flash_adapter, bootloader);
+    let usbd = &nrf5340_peripherals.usbd;
+    usbd.set_power_ref(nrf_power);
+    // usbd.enable_interrupts(0xFFFFFF);
 
+            // Create MyMem instance
+    usb_dfu_app::usb_dfu_run(flash_adapter);
+
+    let my_mem = static_init!(
+        MyMem<'static, bootloader::flash_large_to_small::FlashLargeToSmall<'static, nrf5340::nvmc::Nvmc>>,
+        MyMem::new([0u8; 128], flash_adapter)
+    );
+    // hil::flash::HasClient::set_client(flash_adapter, my_mem);
     //--------------------------------------------------------------------------
     // FINAL SETUP AND BOARD BOOT
     //--------------------------------------------------------------------------
