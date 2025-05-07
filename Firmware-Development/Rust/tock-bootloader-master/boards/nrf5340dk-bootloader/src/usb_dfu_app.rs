@@ -6,9 +6,10 @@ use usbd_dfu::*;
 use nrf_usbd::{UsbPeripheral, Usbd};
 use usb_device::{bus::UsbBusAllocator, bus::UsbBus, prelude::*};
 use usb_device::device::{StringDescriptors, UsbDeviceBuilder, UsbVidPid, UsbDevice};
-use kernel::deferred_call::DeferredCall;
+use kernel::deferred_call::{DeferredCall, DeferredCallClient};
 use crate::bootloader_exit;
 use core::mem::MaybeUninit;
+use core::cell::RefCell;
 use bootloader::flash_large_to_small::FiveTwelvePage;
 
 static mut TEMP_BUFFER: [u8; 512] = [0u8; 512];
@@ -19,10 +20,37 @@ pub struct MyMem<'a, F: hil::flash::Flash + 'static>  {
     flash: &'a F,
 }
 
-pub struct UsbDfuClass<'a, B: UsbBus> {
-    pub usb_device: UsbDevice<'a, B>,
-    pub dfu: DfuRuntimeClass<'a, B>,
+pub struct UsbDfuClass<'a, B: UsbBus, M: DFUMemIO> {
+    pub usb_device: RefCell<UsbDevice<'a, B>>,
+    pub dfu: RefCell<DFUClass<B, M>>,
     pub deferred_handle: DeferredCall,
+}
+
+impl<'a, B: UsbBus, M: DFUMemIO> DeferredCallClient for UsbDfuClass<'a, B, M> {
+    fn handle_deferred_call(&self) {
+        let mut usb_dev = self.usb_device.borrow_mut();
+        let mut dfu = self.dfu.borrow_mut();
+        usb_dev.poll(&mut [&mut *dfu]);
+        self.deferred_handle.set();
+    }
+
+    fn register(&'static self) {
+        self.deferred_handle.register(self);
+    }
+}
+
+impl<'a, B: UsbBus, M: DFUMemIO> UsbDfuClass<'a, B, M> {
+    pub fn new(
+        usb_device: UsbDevice<'a, B>,
+        dfu: DFUClass<B, M>,
+        deferred_handle: DeferredCall,
+    ) -> Self {
+        UsbDfuClass {
+            usb_device: RefCell::new(usb_device),
+            dfu: RefCell::new(dfu),
+            deferred_handle,
+        }
+    }
 }
 
 impl<'a, F: hil::flash::Flash + 'static> MyMem<'a, F> {
@@ -168,7 +196,7 @@ where
     }
 }
 
-pub fn usb_dfu_run(flash_adapter: &bootloader::flash_large_to_small::FlashLargeToSmall<'static, nrf5340::nvmc::Nvmc>) {
+pub fn usb_dfu_run(flash_adapter: &'static bootloader::flash_large_to_small::FlashLargeToSmall<'static, nrf5340::nvmc::Nvmc>) {
     unsafe {
         // Initialize the global PAGEBUFFER
         PAGEBUFFER.write(bootloader::flash_large_to_small::FiveTwelvePage::default());
@@ -176,7 +204,10 @@ pub fn usb_dfu_run(flash_adapter: &bootloader::flash_large_to_small::FlashLargeT
         let my_mem_dfu = MyMem::new([0u8; 128], flash_adapter);
 
         // Set up USB bus
-        let usb_bus_alloc = UsbBusAllocator::new(Usbd::new(Peripheral));
+        let usb_bus_alloc = static_init!(
+            UsbBusAllocator<Usbd<Peripheral>>,
+            UsbBusAllocator::new(Usbd::new(Peripheral))
+        );
 
         // Create DFU class instance
         let mut dfu = DFUClass::new(&usb_bus_alloc, my_mem_dfu);
@@ -188,7 +219,7 @@ pub fn usb_dfu_run(flash_adapter: &bootloader::flash_large_to_small::FlashLargeT
 
         let usb_vid_pid = UsbVidPid(0x0483, 0xdf11);
 
-        let usb_builder = UsbDeviceBuilder::new(&usb_bus_alloc, usb_vid_pid)
+        let usb_builder = UsbDeviceBuilder::new(usb_bus_alloc, usb_vid_pid)
             .strings(&[strings])
             .expect("Failed to set USB string descriptors")
             .device_release(0x0200)
@@ -200,11 +231,17 @@ pub fn usb_dfu_run(flash_adapter: &bootloader::flash_large_to_small::FlashLargeT
 
         let mut usb_dev = usb_builder.build();
 
-        loop {
-            if usb_dev.poll(&mut [&mut dfu]) {
-                // DFUClass will handle the control transfers
+        let usb_dfu = static_init!(
+            UsbDfuClass<Usbd<Peripheral>, MyMem<'static, bootloader::flash_large_to_small::FlashLargeToSmall<'static, nrf5340::nvmc::Nvmc>>>,
+            UsbDfuClass {
+                usb_device: RefCell::new(usb_dev),
+                dfu: RefCell::new(dfu),
+                deferred_handle: DeferredCall::new(),
             }
-        }
+        );
+        
+        usb_dfu.register();         // Register with deferred call system
+        usb_dfu.deferred_handle.set();  // Kick off the polling loop
     }
 }
 
