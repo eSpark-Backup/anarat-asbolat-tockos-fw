@@ -16,8 +16,9 @@ static mut TEMP_BUFFER: [u8; 512] = [0u8; 512];
 static mut PAGEBUFFER: MaybeUninit<bootloader::flash_large_to_small::FiveTwelvePage> = MaybeUninit::uninit();
 
 pub struct MyMem<'a, F: hil::flash::Flash + 'static>  {
-    buffer: [u8; 128],
+    buffer: [u8; 512],
     flash: &'a F,
+    chunk_count: usize,
 }
 
 pub struct UsbDfuClass<'a, B: UsbBus, M: DFUMemIO> {
@@ -54,10 +55,11 @@ impl<'a, B: UsbBus, M: DFUMemIO> UsbDfuClass<'a, B, M> {
 }
 
 impl<'a, F: hil::flash::Flash + 'static> MyMem<'a, F> {
-    pub fn new(buffer: [u8; 128], flash: &'a F) -> Self {
+    pub fn new(buffer: [u8; 512], flash: &'a F) -> Self {
         Self {
             buffer,
             flash,
+            chunk_count : 0,
         }
     }
 }
@@ -109,7 +111,7 @@ where
 {
     const MEM_INFO_STRING: &'static str = "@Flash/0x00018000/256*4Kg";
     const INITIAL_ADDRESS_POINTER: u32 = 0x18000;
-    const PROGRAM_TIME_MS: u32 = 50;
+    const PROGRAM_TIME_MS: u32 = 80;
     const ERASE_TIME_MS: u32 = 50;
     const FULL_ERASE_TIME_MS: u32 = 50;
     const TRANSFER_SIZE: u16 = 128;
@@ -128,7 +130,6 @@ where
         //         Ok(_) => {
                     let bytes: &[u8] = page_ref_2.as_ref();
                     TEMP_BUFFER[..length].copy_from_slice(&bytes[offset_within_page..end]);
-                    TEMP_BUFFER[0] = b'A';
                     Ok(&TEMP_BUFFER[..length])
                 // }
                 // Err(_) => Err(DFUMemError::Address),
@@ -153,38 +154,30 @@ where
     }
 
     fn store_write_buffer(&mut self, src:&[u8]) -> Result<(), ()>{
-        self.buffer[..src.len()].copy_from_slice(src);
+        let offset = self.chunk_count * 128;
+        self.buffer[offset..offset + src.len()].copy_from_slice(src);
+        self.chunk_count += 1;
         Ok(())
     }
 
     fn program(&mut self, address: u32, length: usize) -> Result<(), DFUMemError> {
-        // Attempt to take the page buffer
-        // let result = self.page_buffer.take().map_or_else(
-        //     || Err(DFUMemError::Write), // No page buffer available
-        //     |page| {
-        //         let page_size = page.as_mut().len();
+        if self.chunk_count == 4 {
+            self.chunk_count = 0;
+            // SAFETY: Assume PAGEBUFFER is properly initialized elsewhere
+            let page_ref = unsafe { PAGEBUFFER.assume_init_mut() };
+            let page_size = page_ref.as_mut().len();
 
-        //         if length > page_size {
-        //             return Err(DFUMemError::Prog); // Too much data
-        //         }
-    
-        //         // Copy data from self.buffer to the page
-        //         page.as_mut()[..length].copy_from_slice(&self.buffer[..length]);
-    
-        //         // Calculate page number
-        //         let page_num = address as usize / page_size;
-    
-        //         // Attempt to write to flash
-        //         let result =  self.flash.write_page(page_num, page);
-        //         result.map_or(Err(DFUMemError::Write), |buffer| {
-        //             self.page_buffer.replace(buffer);
-        //             Ok(())
-        //         })
-                
-        //     }
-        // );
-    
-        // result
+            let page_num = (address as usize) / page_size;
+            page_num - 1;
+
+            page_ref.as_mut()[..page_size].copy_from_slice(&self.buffer[..page_size]);
+
+            // Write the full page back
+            self.flash
+                .write_page(page_num, page_ref)
+                .map_err(|_| DFUMemError::Write)?;
+
+        }
         Ok(())
     }
     
@@ -201,7 +194,7 @@ pub fn usb_dfu_run(flash_adapter: &'static bootloader::flash_large_to_small::Fla
         // Initialize the global PAGEBUFFER
         PAGEBUFFER.write(bootloader::flash_large_to_small::FiveTwelvePage::default());
 
-        let my_mem_dfu = MyMem::new([0u8; 128], flash_adapter);
+        let my_mem_dfu = MyMem::new([0u8; 512], flash_adapter);
 
         // Set up USB bus
         let usb_bus_alloc = static_init!(

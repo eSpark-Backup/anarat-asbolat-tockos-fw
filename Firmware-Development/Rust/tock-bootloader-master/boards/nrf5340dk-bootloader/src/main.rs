@@ -119,7 +119,7 @@ static mut CHIP: Option<&'static nrf5340::chip::NRF53<Nrf5340DefaultPeripherals>
 /// Dummy buffer that causes the linker to reserve enough space for the stack.
 #[no_mangle]
 #[link_section = ".stack_buffer"]
-pub static mut STACK_MEMORY: [u8; 0x8000] = [0; 0x8000];
+pub static mut STACK_MEMORY: [u8; 0x10000] = [0; 0x10000];
 
 /// Function to allow the bootloader to exit by reseting the chip.
 fn bootloader_exit() {
