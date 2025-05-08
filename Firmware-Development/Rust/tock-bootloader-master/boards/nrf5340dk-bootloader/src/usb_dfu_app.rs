@@ -19,6 +19,7 @@ pub struct MyMem<'a, F: hil::flash::Flash + 'static>  {
     buffer: [u8; 512],
     flash: &'a F,
     chunk_count: usize,
+    nvmc: &'a nrf53::nvmc::Nvmc,
 }
 
 pub struct UsbDfuClass<'a, B: UsbBus, M: DFUMemIO> {
@@ -55,11 +56,12 @@ impl<'a, B: UsbBus, M: DFUMemIO> UsbDfuClass<'a, B, M> {
 }
 
 impl<'a, F: hil::flash::Flash + 'static> MyMem<'a, F> {
-    pub fn new(buffer: [u8; 512], flash: &'a F) -> Self {
+    pub fn new(buffer: [u8; 512], flash: &'a F, nvmc: &'a nrf53::nvmc::Nvmc) -> Self {
         Self {
             buffer,
             flash,
             chunk_count : 0,
+            nvmc
         }
     }
 }
@@ -125,18 +127,12 @@ where
         unsafe {
             let page_ref = PAGEBUFFER.assume_init_mut();
             let page_ref_2 = PAGEBUFFER.assume_init_mut();
-            self.flash.read_page(page_number, page_ref);
-        //     match self.flash.read_page(page_number, page_ref) {
-        //         Ok(_) => {
-                    let bytes: &[u8] = page_ref_2.as_ref();
-                    TEMP_BUFFER[..length].copy_from_slice(&bytes[offset_within_page..end]);
-                    Ok(&TEMP_BUFFER[..length])
-                // }
-                // Err(_) => Err(DFUMemError::Address),
-            // }
-        // Ok(&TEMP_BUFFER[..length])
+            self.flash.read_page(page_number, page_ref).map_err(|_| DFUMemError::Address)?;
+            self.nvmc.handle_deferred_call();
+            let bytes: &[u8] = page_ref_2.as_ref();
+            TEMP_BUFFER[..length].copy_from_slice(&bytes[offset_within_page..end]);
+            Ok(&TEMP_BUFFER[..length])
         }
-
     }
     
 
@@ -189,12 +185,12 @@ where
     }
 }
 
-pub fn usb_dfu_run(flash_adapter: &'static bootloader::flash_large_to_small::FlashLargeToSmall<'static, nrf5340::nvmc::Nvmc>) {
+pub fn usb_dfu_run<'a>(flash_adapter: &'static bootloader::flash_large_to_small::FlashLargeToSmall<'static, nrf5340::nvmc::Nvmc>, nvmc: &'static nrf53::nvmc::Nvmc) {
     unsafe {
         // Initialize the global PAGEBUFFER
         PAGEBUFFER.write(bootloader::flash_large_to_small::FiveTwelvePage::default());
 
-        let my_mem_dfu = MyMem::new([0u8; 512], flash_adapter);
+        let my_mem_dfu = MyMem::new([0u8; 512], flash_adapter, nvmc);
 
         // Set up USB bus
         let usb_bus_alloc = static_init!(

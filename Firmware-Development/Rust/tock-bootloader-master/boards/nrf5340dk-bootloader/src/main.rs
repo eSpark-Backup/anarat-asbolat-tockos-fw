@@ -397,7 +397,7 @@ pub unsafe fn main() {
     // usbd.enable_interrupts(0xFFFFFF);
 
             // Create MyMem instance
-    usb_dfu_app::usb_dfu_run(flash_adapter);
+    usb_dfu_app::usb_dfu_run(flash_adapter, &base_peripherals.nvmc);
     //--------------------------------------------------------------------------
     // FINAL SETUP AND BOARD BOOT
     //--------------------------------------------------------------------------

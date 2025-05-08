@@ -3,7 +3,7 @@ speed 4000
 if SWD
 connect
 r
-loadbin /home/ash/Documents/GitHub/tock-os/Firmware-Development/Rust/tock-bootloader-master/target/thumbv8m.main-none-eabi/debug/nrf5340dk-bootloader.bin, 0x0000
+loadbin /home/ash/Documents/GitHub/tock-os/Firmware-Development/Rust/tock-bootloader-master/target/thumbv8m.main-none-eabi/release/nrf5340dk-bootloader.bin, 0x0000
 r
 g
 exit
