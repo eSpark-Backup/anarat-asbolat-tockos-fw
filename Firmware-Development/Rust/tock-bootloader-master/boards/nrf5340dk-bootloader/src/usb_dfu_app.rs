@@ -115,7 +115,7 @@ where
     const INITIAL_ADDRESS_POINTER: u32 = 0x18000;
     const PROGRAM_TIME_MS: u32 = 80;
     const ERASE_TIME_MS: u32 = 50;
-    const FULL_ERASE_TIME_MS: u32 = 50;
+    const FULL_ERASE_TIME_MS: u32 = 100;
     const TRANSFER_SIZE: u16 = 128;
 
     fn read(&mut self, address: u32, length: usize) -> Result<&[u8], DFUMemError> {
@@ -146,7 +146,15 @@ where
 
     fn erase_all(&mut self) -> Result<(), DFUMemError> {
         // There is only one block, erase it.
-        Err(DFUMemError::Unknown)
+        // Err(DFUMemError::Unknown)
+        let mut addr = Self::INITIAL_ADDRESS_POINTER as usize;
+        // while addr < 0x100000 {
+            let page_index = addr / 512;
+            self.flash.erase_page(page_index).map_err(|_| DFUMemError::Erase)?;
+            self.nvmc.handle_deferred_call();
+        //     addr += 512;
+        // }
+        Ok(())
     }
 
     fn store_write_buffer(&mut self, src:&[u8]) -> Result<(), ()>{

@@ -392,12 +392,9 @@ pub unsafe fn main() {
     hil::uart::Receive::set_receive_client(&base_peripherals.uarte0, recv_auto_uart);
     hil::uart::Receive::set_receive_client(recv_auto_uart, bootloader);
     hil::flash::HasClient::set_client(flash_adapter, bootloader);
-    let usbd = &nrf5340_peripherals.usbd;
-    usbd.set_power_ref(nrf_power);
-    // usbd.enable_interrupts(0xFFFFFF);
 
-            // Create MyMem instance
     usb_dfu_app::usb_dfu_run(flash_adapter, &base_peripherals.nvmc);
+    // base_peripherals.nvmc.erase_page_helper(0x18000/ 4096);
     //--------------------------------------------------------------------------
     // FINAL SETUP AND BOARD BOOT
     //--------------------------------------------------------------------------

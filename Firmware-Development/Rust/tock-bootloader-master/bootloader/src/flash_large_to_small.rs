@@ -152,16 +152,8 @@ impl<'a, Flarge: hil::flash::Flash> hil::flash::Flash for FlashLargeToSmall<'a, 
         let (index, _) = self.get_large_page_index_offset(page_number);
 
         // Call the underlying flash layer to read the original large page.
-        self.pagebuffer.take().map_or(Err(ErrorCode::FAIL), |page| {
-            self.state.set(State::Erase { page_number });
-            match self.flash_large.read_page(index, page) {
-                Err((e, buf)) => {
-                    self.pagebuffer.replace(buf);
-                    Err(e)
-                }
-                Ok(()) => Ok(()),
-            }
-        })
+        self.state.set(State::Erase { page_number });
+        self.flash_large.erase_page(index)
     }
 }
 
