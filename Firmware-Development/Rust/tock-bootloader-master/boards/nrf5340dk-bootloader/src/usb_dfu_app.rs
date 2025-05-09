@@ -113,9 +113,9 @@ where
 {
     const MEM_INFO_STRING: &'static str = "@Flash/0x00018000/256*4Kg";
     const INITIAL_ADDRESS_POINTER: u32 = 0x18000;
-    const PROGRAM_TIME_MS: u32 = 80;
+    const PROGRAM_TIME_MS: u32 = 60;
     const ERASE_TIME_MS: u32 = 50;
-    const FULL_ERASE_TIME_MS: u32 = 100;
+    const FULL_ERASE_TIME_MS: u32 = 4000;
     const TRANSFER_SIZE: u16 = 128;
 
     fn read(&mut self, address: u32, length: usize) -> Result<&[u8], DFUMemError> {
@@ -137,23 +137,21 @@ where
     
 
     fn erase(&mut self, address: u32) -> Result<(), DFUMemError> {
-        // let page_size = self.page_buffer.map_or(512, |page| page.as_mut().len());
-        // let page_index = (address as usize) / page_size;
-        // let result = self.flash.erase_page(page_index).map_err(|_| DFUMemError::Erase);
-        // result
+        // Erases a single page of 4KB.
+        let page_index = address as usize / 512;
+        self.flash.erase_page(page_index).map_err(|_| DFUMemError::Erase)?;
+        self.nvmc.handle_deferred_call();
         Ok(())
     }
 
     fn erase_all(&mut self) -> Result<(), DFUMemError> {
-        // There is only one block, erase it.
-        // Err(DFUMemError::Unknown)
-        let mut addr = Self::INITIAL_ADDRESS_POINTER as usize;
-        // while addr < 0x100000 {
+        // Erase the flash from INITIAL_ADDRESS_POINTER to the last address of the flash.
+        for addr in (Self::INITIAL_ADDRESS_POINTER as usize..0x100000).step_by(4096) {
             let page_index = addr / 512;
             self.flash.erase_page(page_index).map_err(|_| DFUMemError::Erase)?;
             self.nvmc.handle_deferred_call();
-        //     addr += 512;
-        // }
+        }
+        
         Ok(())
     }
 
@@ -172,7 +170,6 @@ where
             let page_size = page_ref.as_mut().len();
 
             let page_num = (address as usize) / page_size;
-            page_num - 1;
 
             page_ref.as_mut()[..page_size].copy_from_slice(&self.buffer[..page_size]);
 

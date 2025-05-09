@@ -394,7 +394,6 @@ pub unsafe fn main() {
     hil::flash::HasClient::set_client(flash_adapter, bootloader);
 
     usb_dfu_app::usb_dfu_run(flash_adapter, &base_peripherals.nvmc);
-    // base_peripherals.nvmc.erase_page_helper(0x18000/ 4096);
     //--------------------------------------------------------------------------
     // FINAL SETUP AND BOARD BOOT
     //--------------------------------------------------------------------------

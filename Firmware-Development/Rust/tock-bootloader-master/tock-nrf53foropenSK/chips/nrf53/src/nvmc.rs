@@ -84,7 +84,7 @@ register_bitfields! [u32,
         /// to only activate erase and write modes when they are actively
         /// used. Enabling write or erase will invalidate the cache and keep
         /// it invalidated.
-        WEN OFFSET(0) NUMBITS(2) [
+        WEN OFFSET(0) NUMBITS(3) [
             /// Read only access
             Ren = 0,
             /// Write Enabled
@@ -294,18 +294,12 @@ impl Nvmc {
 
     pub fn erase_page_helper(&self, page_number: usize) {
         // Put the NVMC in erase mode.
-        // self.registers.erasepagepartialcfg.write(ErasePagrPartialCfg::DURATION.val(100));
-        // while !self.registers.ready.is_set(Ready::READY) {}
         self.registers.config.write(Configuration::WEN::PEen);
         while !self.registers.ready.is_set(Ready::READY) {}
 
         let address = (page_number * PAGE_SIZE) as u32;
-        // let location = unsafe { &*(address as *const VolatileCell<u32>) };
-        // location.set(0xFFFFFFFF);
-        let first_page_word = address as *mut u32;
-        unsafe {
-            first_page_word.write_volatile(0xFFFF_FFFF);
-        }
+        let location = unsafe { &*(address as *const VolatileCell<u32>) };
+        location.set(0xFFFF_FFFF);
         while !self.registers.ready.is_set(Ready::READY) {}
 
         // Make sure that the NVMC is done. The CPU should be blocked while the
