@@ -8,3 +8,8 @@ python3 ~/ncs/v2.9.1/nrf/scripts/bootloader/validation_data.py --input nrf5340dk
 // Bootloader Provisioning
 python3 ~/ncs/v2.9.1/nrf/scripts/bootloader/provision.py --s0-addr 0x8000 --s1-addr 0x84000 --provision-addr 0xff8100 --public-key-files "tock_pub.pem" --output provision.hex --max-size 0x280 --num-counter-slots-version 2 --mcuboot-counters-slots 2
 
+// Flash Tock OS using DFU
+sudo dfu-util -a 0 -s 0x00018000:leave -D nrf5340dk.bin
+
+// Flash Tock OS using UART
+tockloader flash --address 0x18000 nrf5340dk.bin --serial
