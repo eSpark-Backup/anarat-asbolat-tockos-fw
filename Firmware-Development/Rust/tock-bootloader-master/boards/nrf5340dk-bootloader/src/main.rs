@@ -99,7 +99,7 @@ pub struct FwInfo {
 pub static FW_INFO: FwInfo = FwInfo {
     magic: [0x281ee6de, 0x8fcebb4c, 13570], // Equivalent to FIRMWARE_INFO_MAGIC
     total_size: core::mem::size_of::<FwInfo>() as u32,
-    size: 0x4C00,            // You can set this to your firmware image size
+    size: 0x6A00,            // You can set this to your firmware image size
     version: 1,
     address: 0x8000,         // Start address of firmware
     boot_address: 0x8000,    // Typically same as address, for vector table

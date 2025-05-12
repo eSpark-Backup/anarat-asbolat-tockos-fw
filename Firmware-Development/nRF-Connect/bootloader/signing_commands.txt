@@ -1,0 +1,10 @@
+// Firmware Signing
+imgtool keygen -t ecdsa-p256 -k tock_priv.pem
+imgtool getpub -k tock_priv.pem -e pem > tock_pub.pem
+python3 ~/ncs/v2.9.1/nrf/scripts/bootloader/hash.py --in nrf5340dk-bootloader.hex > tock.sha256
+openssl dgst -sha256 -sign tock_priv.pem tock.sha256 | python3 ~/ncs/v2.9.1/nrf/scripts/bootloader/asn1parse.py --alg ecdsa --contents signature > tock.sig
+python3 ~/ncs/v2.9.1/nrf/scripts/bootloader/validation_data.py --input nrf5340dk-bootloader.hex -o nrf5340dk-bootloader_signed.hex --output-bin nrf5340dk-bootloader_signed.bin --offset 0 --signature tock.sig --public-key tock_pub.pem --magic-value "0x281ee6de,0x86518483,0x13502"
+
+// Bootloader Provisioning
+python3 ~/ncs/v2.9.1/nrf/scripts/bootloader/provision.py --s0-addr 0x8000 --s1-addr 0x84000 --provision-addr 0xff8100 --public-key-files "tock_pub.pem" --output provision.hex --max-size 0x280 --num-counter-slots-version 2 --mcuboot-counters-slots 2
+
