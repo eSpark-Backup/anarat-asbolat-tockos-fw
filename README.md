@@ -2,6 +2,17 @@
 
 This guide explains how to build, sign, and flash the Tock-based bootloader and TockOS firmware for the Nordic nRF5340DK development kit.
 
+## 🛠 Troubleshooting
+
+If you encounter issues while building the project, ensure your Rust environment is correctly set up. Run the following commands:
+
+```sh
+rustup update nightly
+rustup override set nightly
+rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+rustup component add llvm-tools
+```
+
 ---
 
 ## 📦 1. Build Second Stage Bootloader (Tock-Boot)
