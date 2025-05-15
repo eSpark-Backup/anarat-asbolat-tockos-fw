@@ -19,7 +19,7 @@ rustup component add llvm-tools
 
 1. Navigate to the Tock-Bootloader directory:
    ```sh
-   cd anaratasbolat-tockos-fw/Firmware-Development/Rust/tock-bootloader-master/boards/nrf5340dk-bootloader/
+   cd Firmware-Development/Rust/tock-bootloader-master/boards/nrf5340dk-bootloader/
    ```
 
 2. Build the bootloader:
@@ -29,7 +29,7 @@ rustup component add llvm-tools
 
 3. Copy the generated HEX file:
    ```sh
-   anaratasbolat-tockos-fw/Firmware-Development/nRF-Connect/bootloader/tock-boot/
+   Firmware-Development/nRF-Connect/bootloader/tock-boot/
    ```
 
 ---
@@ -38,7 +38,7 @@ rustup component add llvm-tools
 
 1. Navigate to the TockOS build directory:
    ```sh
-   cd anaratasbolat-tockos-fw/Firmware-Development/Rust/tock-bootloader-master/tock-nrf53foropenSK/boards/nordic/nrf5340dk/
+   cd Firmware-Development/Rust/tock-bootloader-master/tock-nrf53foropenSK/boards/nordic/nrf5340dk/
    ```
 
 2. Build the firmware:
@@ -48,7 +48,7 @@ rustup component add llvm-tools
 
 3. Copy the generated BIN file:
    ```sh
-   anaratasbolat-tockos-fw/Firmware-Development/nRF-Connect/bootloader/tock-boot/
+   Firmware-Development/nRF-Connect/bootloader/tock-boot/
    ```
 
 ---
@@ -57,7 +57,7 @@ rustup component add llvm-tools
 
 1. Open the NSIB bootloader project in **nRF Connect for VS Code**:
    ```sh
-   cd anaratasbolat-tockos-fw/Firmware-Development/nRF-Connect/bootloader/
+   cd Firmware-Development/nRF-Connect/bootloader/
    ```
 
 2. Build the project from VS Code.
@@ -70,7 +70,7 @@ rustup component add llvm-tools
 
 1. Navigate to the `tock-boot` directory:
    ```sh
-   cd anaratasbolat-tockos-fw/Firmware-Development/nRF-Connect/bootloader/tock-boot/
+   cd Firmware-Development/nRF-Connect/bootloader/tock-boot/
    ```
 
 2. Sign the Tock-Boot hex:
