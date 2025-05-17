@@ -127,6 +127,13 @@ loadfile nrf5340dk-bootloader_signed.hex
 ```
 
 ---
+## Changes in Linker Script of Tock-OS
+If you are using a version of Tock-OS other than the one provided in this source, you will need to modify the linker script file.
+1. Navigate to the file `nrf5340_chip_layout.ld` located in the `Nordic` directory of Tock-OS.
+2. Replace it with the one present at this following path:
+```sh
+Firmware-Development/Rust/tock-bootloader-master/tock-nrf53foropenSK/boards/nordic/nrf5340_chip_layout.ld
+```
 
 ## ✅ Done
 
